@@ -25,7 +25,7 @@ class Img_iterator():
             im = cv2.imread(os.path.join(self.imgs_dir,file_name + ext))
             return im, file_name
 
-    def read_img(self, img_file):        
+    def read(self, img_file):        
         im = cv2.imread(os.path.join(self.imgs_dir,img_file))
         return im
 
