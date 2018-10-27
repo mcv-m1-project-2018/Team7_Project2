@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dataset_w1_gt import ground_truth
-from feat_hsv_hst import get_hsv, retrieve_best_results
+from feat_hsv_hst import get_hsv, retrieve_best_results, get_hsv_hist
 from data_handler import Data
 
 
@@ -41,11 +41,13 @@ def main():
     
     query_imgs    = [[im, name ] for im,name in data.query_imgs]
     database_imgs = [[im, name ] for im,name in data.database_imgs]
-    query_hist    = [get_hsv(im) for im,name in query_imgs]
-    database_hist = [get_hsv(im) for im,name in database_imgs]
+    query_hist    = [get_hsv_hist(im) for im,name in query_imgs]
+    #database_hist = [get_hsv(im) for im,name in database_imgs]
 
+    database_hist = [get_hsv_hist(im) for im,name in database_imgs]
+    
     for [q_im, q_name], q_hist in zip(query_imgs, query_hist):
-        scores = retrieve_best_results(image_histH=q_hist['histH'],
+        scores = retrieve_best_results(image_histH=q_hist,
                                        database_imgs=database_imgs,
                                        database_hist=database_hist)
 

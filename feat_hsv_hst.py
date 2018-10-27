@@ -6,9 +6,9 @@ from scipy.stats import wasserstein_distance
 
 def get_hsv(img, visualize=False):
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    histH = cv2.calcHist(images=[hsv_image], channels=[0], mask=None, histSize=[256], ranges=[0, 256])
-    histS = cv2.calcHist([hsv_image], [1], None, [256], [0, 256])
-    histV = cv2.calcHist([hsv_image], [2], None, [256], [0, 256])
+    histH = cv2.calcHist(images=[hsv_image], channels=[0], mask=None, histSize=[150], ranges=[0, 256])
+    histS = cv2.calcHist([hsv_image], [1], None, [20], [0, 256])
+    histV = cv2.calcHist([hsv_image], [2], None, [20], [0, 256])
     sum_hist = histH.sum()
 
     feats = {'histH': histH / sum_hist,
@@ -26,6 +26,15 @@ def get_hsv(img, visualize=False):
     return feats
 
 
+def get_hsv_hist(img, visualize=True):	
+    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    hsv_hist  = cv2.calcHist([img], [0, 1, 2], None, [100, 50, 50], [0, 256, 0, 256, 0, 256])
+    cv2.normalize(hsv_hist,hsv_hist)
+    hsv_hist  = hsv_hist.flatten()
+
+    return hsv_hist
+
+
 def compare_histograms(hist1, hist2, method):
     score = 0
     if method == cv2.HISTCMP_INTERSECT or method == cv2.HISTCMP_CHISQR or method == cv2.HISTCMP_CORREL or \
@@ -36,6 +45,7 @@ def compare_histograms(hist1, hist2, method):
         score = wasserstein_distance(hist1[:, 0], hist2[:, 0])  # earth mover's distance
 
     return score
+
 
 def retrieve_best_results(image_histH, database_imgs, database_hist, method=cv2.HISTCMP_BHATTACHARYYA, K=10):
     """
@@ -49,7 +59,7 @@ def retrieve_best_results(image_histH, database_imgs, database_hist, method=cv2.
     scores = []
     for [d_im, d_name], d_hist in zip(database_imgs, database_hist):
         #scores.append( ( d_name , difference(image_histH, d_hist['histH'])) )
-        scores.append((d_name, compare_histograms(image_histH, d_hist['histH'], method=method)))
+        scores.append((d_name, compare_histograms(image_histH, d_hist, method=method)))
 
     if method in [cv2.HISTCMP_INTERSECT, cv2.HISTCMP_CORREL]:
         scores.sort(key=lambda s: s[1], reverse=True)
