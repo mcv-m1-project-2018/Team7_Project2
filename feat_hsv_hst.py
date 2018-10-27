@@ -28,7 +28,7 @@ def get_hsv(img, visualize=False):
 
 def get_hsv_hist(img, visualize=True):	
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    hsv_hist  = cv2.calcHist([hsv_image], [0, 1, 2], None, [100, 20, 20], [0, 256, 0, 256, 0, 256])
+    hsv_hist  = cv2.calcHist([hsv_image], [0, 1, 2], None, [100, 10, 10], [0, 256, 0, 256, 0, 256])
     cv2.normalize(hsv_hist,hsv_hist)
     hsv_hist  = hsv_hist.flatten()
 
