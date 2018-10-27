@@ -1,6 +1,5 @@
 import cv2
 import matplotlib.pyplot as plt
-from scipy.stats import wasserstein_distance
 import numpy as np
 
 
@@ -85,9 +84,6 @@ def compare_histograms(pyramid_hsv_1, pyramid_hsv_2, method):
             for hist1, hist2 in zip(regions_hists_1,regions_hists_2):
                 sub_score += cv2.compareHist(hist1, hist2, method)
             score += sub_score/len(regions_hists_1)
-
-    if method == 'emd':
-        score = wasserstein_distance(hist1[:, 0], hist2[:, 0])  # earth mover's distance
 
     return score
 
