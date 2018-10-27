@@ -37,21 +37,19 @@ def compare_histograms(hist1, hist2, method):
 
     return score
 
-
-def retrieve_best_results(image_histH, data, method=cv2.HISTCMP_BHATTACHARYYA, K=10):
+def retrieve_best_results(image_histH, database_imgs, database_hist, method=cv2.HISTCMP_BHATTACHARYYA, K=10):
     """
     Call this function in order to compare a histogram with the rest of the dataset
     :param image_histH: hsv histogram of the image to match
-    :param data: the dataset
+    :param database_imgs: list of [numpy_rgb_image, image_name]
     :param method:
     :param K:
     :return: the k top matches
     """
-
     scores = []
-    for database_im, database_im_name in data.database_imgs:
-        hsv_hist = get_hsv(database_im)
-        scores.append((database_im_name, compare_histograms(image_histH, hsv_hist['histH'], method=method)))
+    for [d_im, d_name], d_hist in zip(database_imgs, database_hist):
+        #scores.append( ( d_name , difference(image_histH, d_hist['histH'])) )
+        scores.append((d_name, compare_histograms(image_histH, d_hist['histH'], method=method)))
 
     if method in [cv2.HISTCMP_INTERSECT, cv2.HISTCMP_CORREL]:
         scores.sort(key=lambda s: s[1], reverse=True)
@@ -59,4 +57,3 @@ def retrieve_best_results(image_histH, data, method=cv2.HISTCMP_BHATTACHARYYA, K
         scores.sort(key=lambda s: s[1], reverse=False)
 
     return scores[:K]
-

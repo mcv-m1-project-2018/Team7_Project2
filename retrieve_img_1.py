@@ -35,17 +35,23 @@ def evaluation(predicted, actual, k=10):
 
 
 def main():
-
     data = Data(database_dir= 'museum_set_random', query_dir= 'query_devel_random')
     # test_ground_truth(ground_truth=ground_truth, museum_set=museum_set, query_set=query_set)
     eval_array = []
-    for query_im, query_name in data.query_imgs:
-        hsv_hist = get_hsv( query_im )
-        scores = retrieve_best_results(image_histH=hsv_hist['histH'], data = data)
+    
+    query_imgs    = [[im, name ] for im,name in data.query_imgs]
+    database_imgs = [[im, name ] for im,name in data.database_imgs]
+    query_hist    = [get_hsv(im) for im,name in query_imgs]
+    database_hist = [get_hsv(im) for im,name in database_imgs]
 
-        eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[query_name]])
+    for [q_im, q_name], q_hist in zip(query_imgs, query_hist):
+        scores = retrieve_best_results(image_histH=q_hist['histH'],
+                                       database_imgs=database_imgs,
+                                       database_hist=database_hist)
+
+        eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
         print(eval)
-        eval_array.append(eval)
+        eval_array.append(eval)        
         """
         show_results(scores=scores,
                      museum_set=museum_set,
