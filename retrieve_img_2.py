@@ -50,15 +50,24 @@ def main():
         database_hash[name] = get_hash(im)
 
     for [q_image, q_name], q_hist in zip(query_imgs, query_hist):
-        scores = retrieve_best_results(q_image, database_imgs, database_hash)
-        # scores2 = retrieve_best_results_hsv(image_histH=q_hist,
-        #                                     database_imgs=database_imgs,
-        #                                     database_hist=database_hist)
-        #
-        # scores.sort(key=lambda s: s[0], reverse=False)
-        # scores2.sort(key=lambda s: s[0], reverse=False)
+        scores = retrieve_best_results(q_image, database_imgs, database_hash, K=len(database_imgs))
 
-        eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
+        scores2 = retrieve_best_results_hsv(image_histH=q_hist,
+                                            database_imgs=database_imgs,
+                                            database_hist=database_hist, K=len(database_imgs))
+
+        # sort by image name
+        scores.sort(key=lambda s: s[0], reverse=False)
+        scores2.sort(key=lambda s: s[0], reverse=False)
+
+        # add the scores (assuming we are using cv2.HISTCMP_BHATTACHARYYA, as it outputs the best match as the lowest
+        # score)
+        combined_scores = [(score[0][0], score[1][1]+score[0][1]) for score in zip(scores, scores2)]
+
+        combined_scores.sort(key=lambda s: s[1], reverse=False)
+        combined_scores = combined_scores[:10]
+
+        eval = evaluation(predicted=[s[0] for s in combined_scores], actual=[ground_truth[q_name]])
         print(eval)
         eval_array.append(eval)
         """
