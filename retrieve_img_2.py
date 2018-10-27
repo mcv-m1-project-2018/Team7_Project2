@@ -1,6 +1,7 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 
 
 from dataset_w1_gt import ground_truth
@@ -35,7 +36,7 @@ def evaluation(predicted, actual, k=10):
     return score / min(len(actual), k)
 
 
-def main():
+def main(args):
     data = Data(database_dir='museum_set_random', query_dir='query_devel_random')
     # test_ground_truth(ground_truth=ground_truth, museum_set=museum_set, query_set=query_set)
     eval_array = []
@@ -50,24 +51,30 @@ def main():
         database_hash[name] = get_hash(im)
 
     for [q_image, q_name], q_hist in zip(query_imgs, query_hist):
-        scores = retrieve_best_results(q_image, database_imgs, database_hash, K=len(database_imgs))
+        if args.use_histogram:
+            K = len(database_imgs)
+        else:
+            K = 10
 
-        scores2 = retrieve_best_results_hsv(image_histH=q_hist,
-                                            database_imgs=database_imgs,
-                                            database_hist=database_hist, K=len(database_imgs))
+        scores = retrieve_best_results(q_image, database_imgs, database_hash, K=K)
 
-        # sort by image name
-        scores.sort(key=lambda s: s[0], reverse=False)
-        scores2.sort(key=lambda s: s[0], reverse=False)
+        if args.use_histogram:
+            scores2 = retrieve_best_results_hsv(image_histH=q_hist,
+                                                database_imgs=database_imgs,
+                                                database_hist=database_hist, K=K)
+            # sort by image name
+            scores.sort(key=lambda s: s[0], reverse=False)
+            scores2.sort(key=lambda s: s[0], reverse=False)
 
-        # add the scores (assuming we are using cv2.HISTCMP_BHATTACHARYYA, as it outputs the best match as the lowest
-        # score)
-        combined_scores = [(score[0][0], score[1][1]+score[0][1]) for score in zip(scores, scores2)]
+            # add the scores (assuming we are using cv2.HISTCMP_BHATTACHARYYA, as it outputs the best match as the
+            # lowest score)
+            combined_scores = [(score[0][0], score[1][1]+score[0][1]) for score in zip(scores, scores2)]
 
-        combined_scores.sort(key=lambda s: s[1], reverse=False)
-        combined_scores = combined_scores[:10]
+            combined_scores.sort(key=lambda s: s[1], reverse=False)
+            combined_scores = combined_scores[:10]
+            scores = combined_scores
 
-        eval = evaluation(predicted=[s[0] for s in combined_scores], actual=[ground_truth[q_name]])
+        eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
         print(eval)
         eval_array.append(eval)
         """
@@ -81,5 +88,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-use_histogram', help='use the hashing method with the histogram based method',
+                        action='store_true')
+    args = parser.parse_args()
+    main(args)
 
