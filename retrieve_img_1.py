@@ -4,20 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dataset_w1_gt import ground_truth
-from feat_hsv_hst import get_hsv
+from feat_hsv_hst import get_hsv, retrieve_best_results
 from data_handler import Data
-
-def difference(image1_histH, image2_histH, metric=cv2.HISTCMP_CORREL):
-    return cv2.compareHist(image1_histH, image2_histH, metric)
-
-def retrieve_best_results(image_histH, data, K=10):
-    scores = []
-    for database_im, database_im_name in data.database_imgs:
-        hsv_hist = get_hsv( database_im )
-        scores.append( ( database_im_name , difference(image_histH, hsv_hist['histH'])) )
-
-    scores.sort(key=lambda s: s[1], reverse=True)
-    return scores[:K]
 
 
 def show_results(scores, museum_set, query_image, ground_truth_image):

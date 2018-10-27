@@ -1,3 +1,6 @@
 #Datasets
 museum_set_random/
 query_devel_random/
+.idea/
+venv/
+__pycache__/

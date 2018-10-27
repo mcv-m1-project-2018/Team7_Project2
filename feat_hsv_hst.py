@@ -1,5 +1,6 @@
 import cv2
 import matplotlib.pyplot as plt
+from scipy.stats import wasserstein_distance
 
 
 
@@ -23,3 +24,39 @@ def get_hsv(img, visualize=False):
         plt.show()
 
     return feats
+
+
+def compare_histograms(hist1, hist2, method):
+    score = 0
+    if method == cv2.HISTCMP_INTERSECT or method == cv2.HISTCMP_CHISQR or method == cv2.HISTCMP_CORREL or \
+            method == cv2.HISTCMP_BHATTACHARYYA or method == cv2.HISTCMP_KL_DIV or method == cv2.HISTCMP_INTERSECT:
+        score = cv2.compareHist(hist1, hist2, method)
+
+    if method == 'emd':
+        score = wasserstein_distance(hist1[:, 0], hist2[:, 0])  # earth mover's distance
+
+    return score
+
+
+def retrieve_best_results(image_histH, data, method=cv2.HISTCMP_BHATTACHARYYA, K=10):
+    """
+    Call this function in order to compare a histogram with the rest of the dataset
+    :param image_histH: hsv histogram of the image to match
+    :param data: the dataset
+    :param method:
+    :param K:
+    :return: the k top matches
+    """
+
+    scores = []
+    for database_im, database_im_name in data.database_imgs:
+        hsv_hist = get_hsv(database_im)
+        scores.append((database_im_name, compare_histograms(image_histH, hsv_hist['histH'], method=method)))
+
+    if method in [cv2.HISTCMP_INTERSECT, cv2.HISTCMP_CORREL]:
+        scores.sort(key=lambda s: s[1], reverse=True)
+    else:
+        scores.sort(key=lambda s: s[1], reverse=False)
+
+    return scores[:K]
+
