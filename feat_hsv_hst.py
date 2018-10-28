@@ -22,36 +22,6 @@ def get_im_pyramid(im_shape, pyramid):
 
     return pyramid_slices
 
-"""
-def get_hsv(img, visualize=False):
-    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    histH = cv2.calcHist(images=[hsv_image], channels=[0], mask=None, histSize=[150], ranges=[0, 180])
-    histS = cv2.calcHist([hsv_image], [1], None, [20], [0, 256])
-    histV = cv2.calcHist([hsv_image], [2], None, [20], [0, 256])
-    sum_hist = histH.sum()
-
-    feats = {'histH': histH / sum_hist,
-            'histS': histS  / sum_hist,
-            'histV': histV  / sum_hist}
-
-    if (visualize):
-        RGB_image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        plt.subplot(221), plt.imshow(RGB_image)
-        plt.subplot(222), plt.plot(histH / sum_hist, )
-        plt.subplot(223), plt.plot(histS / sum_hist)
-        plt.subplot(224), plt.plot(histV / sum_hist)
-        plt.show()
-
-    return feats
-
-def get_hsv_hist(img, visualize=True):    
-    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    hsv_hist  = cv2.calcHist([hsv_image], [0, 1, 2], None, [100, 10, 10], [0, 256, 0, 256, 0, 256])
-    cv2.normalize(hsv_hist,hsv_hist)
-    hsv_hist  = hsv_hist.flatten()
-
-    return hsv_hist
-"""
 
 def get_hsv_hist(img,pyramid = [200], visualize=True):
     pyramid_slices =  get_im_pyramid(im_shape = img.shape, pyramid = pyramid)
@@ -63,7 +33,7 @@ def get_hsv_hist(img,pyramid = [200], visualize=True):
     for i, slices in enumerate(pyramid_slices):
         for slice in slices:
             x,y,w,h = slice
-            crop = hsv_image[x:x+w,y:y+h]
+            crop = np.copy(hsv_image[x:x+w,y:y+h])
             #cv2.imshow('crop',crop)
             #cv2.waitKey()
             hsv_hist  = cv2.calcHist([crop], [0, 1, 2], None, [80, 5, 3], [0, 180, 0, 256, 0, 256])
@@ -85,7 +55,7 @@ def compare_histograms(pyramid_hsv_1, pyramid_hsv_2, method):
                 sub_score += cv2.compareHist(hist1, hist2, method)
             score += sub_score/len(regions_hists_1)
 
-    return score
+    return score/len(pyramid_hsv_1)
 
 
 def retrieve_best_results(image_histH, database_imgs, database_hist, method=cv2.HISTCMP_BHATTACHARYYA, K=10):
