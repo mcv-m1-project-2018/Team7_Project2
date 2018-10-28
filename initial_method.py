@@ -53,7 +53,14 @@ def show_results(scores, museum_set, query_image, ground_truth_image):
 def test_ground_truth(ground_truth, museum_set, query_set):
     for id in ground_truth:
         gt_image = query_set[id]['image']
+        height_gt = np.size(gt_image, 0)
+        width_gt = np.size(gt_image, 1)
+        print("------------------------------------------------------------")
+        print("Query Image dimensions:  width-> "+str(width_gt)+",   height-> "+str(height_gt)+",   aspect ratio-> "+str(width_gt/height_gt))
         museum_image = museum_set[ground_truth[id]]['image']
+        height = np.size(museum_image, 0)
+        width = np.size(museum_image, 1)
+        print("Museum Image dimensions:  width-> " + str(width) + ",   height-> " + str(height) + ",   aspect ratio-> " + str(width / height))
         rgb_gt_image = cv2.cvtColor(gt_image, cv2.COLOR_BGR2RGB)
         rgb_museum_image = cv2.cvtColor(museum_image, cv2.COLOR_BGR2RGB)
         plt.subplot(121), plt.imshow(rgb_gt_image)
@@ -62,6 +69,9 @@ def test_ground_truth(ground_truth, museum_set, query_set):
 
 
 def evaluation(predicted, actual, k=10):
+
+    if len(predicted) > k:
+        predicted = predicted[:k]
 
     score = 0.0
     num_hits = 0.0
@@ -114,7 +124,7 @@ def main():
         'ima_000029': 'ima_000041',
     }
 
-    # test_ground_truth(ground_truth=ground_truth, museum_set=museum_set, query_set=query_set)
+    test_ground_truth(ground_truth=ground_truth, museum_set=museum_set, query_set=query_set)
     eval_array = []
     for query in query_set:
         scores = retrieve_best_results(image_histH=query_set[query]['histH'], dataset=museum_set)
