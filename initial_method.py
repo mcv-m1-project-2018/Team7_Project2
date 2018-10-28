@@ -43,7 +43,7 @@ def show_results(scores, museum_set, query_image, ground_truth_image):
     RGB_image = cv2.cvtColor(query_image, cv2.COLOR_BGR2RGB)
     plt.subplot(353), plt.imshow(RGB_image)
     RGB_image_gt = cv2.cvtColor(ground_truth_image, cv2.COLOR_BGR2RGB)
-    plt.subplot(354), plt.imshow(RGB_image)
+    plt.subplot(354), plt.imshow(RGB_image_gt)
     for i in range(10):
         RGB_image = cv2.cvtColor(museum_set[scores[i][0]]['image'], cv2.COLOR_BGR2RGB)
         plt.subplot(3,5,6+i), plt.imshow(RGB_image)
@@ -126,6 +126,7 @@ def main():
                      museum_set=museum_set,
                      query_image=query_set[query]['image'],
                      ground_truth_image=museum_set[ground_truth[query]]['image'])
+
     global_eval = np.mean(eval_array)
     print("----------------\nEvaluation: "+str(global_eval))
 
