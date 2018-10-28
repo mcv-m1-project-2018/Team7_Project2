@@ -23,7 +23,7 @@ def get_im_pyramid(im_shape, pyramid):
     return pyramid_slices
 
 
-def get_hsv_hist(img,pyramid = [200], visualize=True):
+def get_hsv_hist(img,pyramid = [1,4,16,32,128,256], visualize=True):
     pyramid_slices =  get_im_pyramid(im_shape = img.shape, pyramid = pyramid)
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     pyramid_hsv = [ [] for i in range(len(pyramid)) ]
@@ -46,6 +46,9 @@ def get_hsv_hist(img,pyramid = [200], visualize=True):
 
 def compare_histograms(pyramid_hsv_1, pyramid_hsv_2, method):
     score = 0
+
+    norm_term = [len(regions_size) for regions_size in pyramid_hsv_1]
+    norm_term = sum(norm_term)
     if method == cv2.HISTCMP_INTERSECT or method == cv2.HISTCMP_CHISQR or method == cv2.HISTCMP_CORREL or \
             method == cv2.HISTCMP_BHATTACHARYYA or method == cv2.HISTCMP_KL_DIV or method == cv2.HISTCMP_INTERSECT:
 
@@ -53,9 +56,9 @@ def compare_histograms(pyramid_hsv_1, pyramid_hsv_2, method):
             sub_score = 0
             for hist1, hist2 in zip(regions_hists_1,regions_hists_2):
                 sub_score += cv2.compareHist(hist1, hist2, method)
-            score += sub_score/len(regions_hists_1)
+            score += sub_score#/len(regions_hists_1)
 
-    return score/len(pyramid_hsv_1)
+    return score/norm_term#/len(pyramid_hsv_1)
 
 
 def retrieve_best_results(image_histH, database_imgs, database_hist, method=cv2.HISTCMP_BHATTACHARYYA, K=10):
