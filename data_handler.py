@@ -8,7 +8,13 @@ class Img_iterator():
     def __init__(self, imgs_dir = ''):
         self.im_idx     = 0
         self.imgs_dir   = imgs_dir
-        self.imgs_files = os.listdir(imgs_dir)
+        self.imgs_files = []
+
+        files = os.listdir(imgs_dir)
+        for file in files:
+            file_name, ext = os.path.splitext(file)
+            if ext != '':
+                self.imgs_files.append(file)
 
     def __iter__(self):
         return self

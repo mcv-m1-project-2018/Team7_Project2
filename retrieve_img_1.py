@@ -3,7 +3,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dataset_w1_gt import ground_truth
+from dataset_w1_gt import ground_truth, ground_truth_test
 from feat_hsv_hst import retrieve_best_results, get_hsv_hist
 from data_handler import Data
 
@@ -37,7 +37,9 @@ def evaluation(predicted, actual, k=10):
 
 
 def main():
-    data = Data(database_dir= 'museum_set_random', query_dir= 'query_devel_random')
+    data = Data(database_dir= 'museum_set_random', query_dir= 'query_test_random/query_test_random/')
+    ground_truth = ground_truth_test
+
     # test_ground_truth(ground_truth=ground_truth, museum_set=museum_set, query_set=query_set)
     eval_array = []
     
