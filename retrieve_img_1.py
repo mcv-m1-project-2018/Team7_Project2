@@ -2,8 +2,9 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 
-from dataset_w1_gt import ground_truth, ground_truth_test
+from dataset_w1_gt import ground_truth as ground_truth_val, ground_truth_test
 from feat_hsv_hst import retrieve_best_results, get_hsv_hist
 from data_handler import Data
 
@@ -36,9 +37,14 @@ def evaluation(predicted, actual, k=10):
     return score / min(len(actual), k)
 
 
-def main():
-    data = Data(database_dir= 'museum_set_random', query_dir= 'query_test_random/query_test_random/')
-    ground_truth = ground_truth_test
+def main(args):
+    if args.test:
+        query_folder = "query_test_random"
+        ground_truth = ground_truth_test
+    else:
+        query_folder = "query_devel_random"
+        ground_truth = ground_truth_val
+    data = Data(database_dir= 'museum_set_random', query_dir= query_folder)
 
     # test_ground_truth(ground_truth=ground_truth, museum_set=museum_set, query_set=query_set)
     eval_array = []
@@ -67,6 +73,9 @@ def main():
     print("----------------\nEvaluation: "+str(global_eval))
 
 
-
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-test', help='runs the code on the test dataset',
+                        action='store_true')
+    args = parser.parse_args()
+    main(args)
