@@ -19,7 +19,6 @@ def compare_wavelet_hashing(q_hash, im_hash):
     8x8 hash size: 0.85
     16x16 hash size: 0.92 (~26 seconds)
     32x32 hash size: 0.92
-    TODO: retrieve execution times
 
     We based our code on https://fullstackml.com/wavelet-image-hash-in-python-3504fdd282b5
     :param q_hash: hash of the query image
