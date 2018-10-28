@@ -58,6 +58,7 @@ def show_results(scores, museum_set, query_image, ground_truth_image):
         if i: int_array.append(1)
         else: int_array.append(0)
     plt.subplot(342), plt.axis('off')
+    plt.title("Difference: " + str(feat_wavelet_hash.compare_wavelet_hashing(feat_wavelet_hash.get_hash(query_image),feat_wavelet_hash.get_hash(query_image))))
 
     t = np.arange(0, len(int_array))
     x = int_array
@@ -74,7 +75,8 @@ def show_results(scores, museum_set, query_image, ground_truth_image):
                 int_array2.append(1)
             else:
                 int_array2.append(0)
-        plt.subplot(3,4,4+2*i), plt.axis('off')
+        plt.subplot(3,4,4+2*i), plt.axis('off'), plt.title("Difference: "+str(feat_wavelet_hash.compare_wavelet_hashing(feat_wavelet_hash.get_hash(query_image),
+                                                                                                                        feat_wavelet_hash.get_hash(museum_set[scores[i][0]]['image']))))
         x2 = int_array2
         plt.plot(t, x2, '-', lw=1, color='r')
         plt.plot(t, x, '-', lw=1, color='b')
