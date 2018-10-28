@@ -5,3 +5,4 @@ query_test_random/
 .idea/
 venv/
 __pycache__/
+*.pyc
