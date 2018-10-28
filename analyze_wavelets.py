@@ -3,14 +3,14 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
+import feat_wavelet_hash
+
 
 def read_dataset(path, visualize=False):
     files = os.listdir(path)
     dataset = {}
-    print(files)
     for file in files:
-        image = cv2.imread(os.path.join(path,file), 1)
-        """
+        image = cv2.imread(os.path.join(path,file))
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         histH = cv2.calcHist(images=[hsv_image], channels=[0], mask=None, histSize=[256], ranges=[0, 256])
         histS = cv2.calcHist([hsv_image], [1], None, [256], [0, 256])
@@ -20,6 +20,7 @@ def read_dataset(path, visualize=False):
                                         'histH': histH / sum_hist,
                                         'histS': histS / sum_hist,
                                         'histV': histV / sum_hist}
+
         if (visualize):
             RGB_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             plt.subplot(221), plt.imshow(RGB_image)
@@ -27,9 +28,6 @@ def read_dataset(path, visualize=False):
             plt.subplot(223), plt.plot(histS / sum_hist)
             plt.subplot(224), plt.plot(histV / sum_hist)
             plt.show()
-        """
-        dataset[file.strip('.jpg')] = {'image': image}
-
     return dataset
 
 
@@ -37,20 +35,53 @@ def difference(image1_histH, image2_histH, metric=cv2.HISTCMP_CORREL):
     return cv2.compareHist(image1_histH, image2_histH, metric)
 
 
-def retrieve_best_results(image_histH, dataset, K=10):
-    scores = [(image, difference(image_histH, dataset[image]['histH'])) for image in dataset.keys()]
-    scores.sort(key=lambda s: s[1], reverse=True)
+def retrieve_best_results(query_image, dataset, K=10):
+    query_hash = feat_wavelet_hash.get_hash(query_image)
+    scores = []
+    for id in dataset.keys():
+        dataset_image = dataset[id]['image']
+        dataset_hash = feat_wavelet_hash.get_hash(dataset_image)
+        score = (id, feat_wavelet_hash.compare_wavelet_hashing(q_hash=query_hash, im_hash=dataset_hash))
+        scores.append(score)
+    scores.sort(key=lambda s: s[1], reverse=False)
     return scores[:K]
 
 
 def show_results(scores, museum_set, query_image, ground_truth_image):
+
     RGB_image = cv2.cvtColor(query_image, cv2.COLOR_BGR2RGB)
-    plt.subplot(353), plt.imshow(RGB_image)
-    RGB_image_gt = cv2.cvtColor(ground_truth_image, cv2.COLOR_BGR2RGB)
-    plt.subplot(354), plt.imshow(RGB_image_gt)
-    for i in range(10):
+    plt.subplot(341), plt.axis('off'), plt.imshow(RGB_image)
+
+    bool_array = feat_wavelet_hash.get_hash(query_image).hash.flatten()
+    int_array = []
+    for i in bool_array:
+        if i: int_array.append(1)
+        else: int_array.append(0)
+    plt.subplot(342), plt.axis('off')
+
+    t = np.arange(0, len(int_array))
+    x = int_array
+    plt.plot(t, x, '-', lw=1, color='b')
+
+    for i in range(5):
         RGB_image = cv2.cvtColor(museum_set[scores[i][0]]['image'], cv2.COLOR_BGR2RGB)
-        plt.subplot(3,5,6+i), plt.imshow(RGB_image)
+        plt.subplot(3,4,3+2*i), plt.axis('off'), plt.imshow(RGB_image)
+
+        bool_array = feat_wavelet_hash.get_hash(museum_set[scores[i][0]]['image']).hash.flatten()
+        int_array2 = []
+        for j in bool_array:
+            if j:
+                int_array2.append(1)
+            else:
+                int_array2.append(0)
+        plt.subplot(3,4,4+2*i), plt.axis('off')
+        x2 = int_array2
+        plt.plot(t, x2, '-', lw=1, color='r')
+        plt.plot(t, x, '-', lw=1, color='b')
+
+
+
+
     plt.show()
 
 
@@ -60,7 +91,6 @@ def test_ground_truth(ground_truth, museum_set, query_set):
         height_gt = np.size(gt_image, 0)
         width_gt = np.size(gt_image, 1)
         print("------------------------------------------------------------")
-        print(id)
         print("Query Image dimensions:  width-> "+str(width_gt)+",   height-> "+str(height_gt)+",   aspect ratio-> "+str(width_gt/height_gt))
         museum_image = museum_set[ground_truth[id]]['image']
         height = np.size(museum_image, 0)
@@ -95,7 +125,6 @@ def main():
 
     museum_set = read_dataset('museum_set_random')
     query_set = read_dataset('query_devel_random')
-    query_set_test = read_dataset('query_test_random')
 
     ground_truth ={ #Annotations: Image in the query set -> Correct image in the museum set
         'ima_000000': 'ima_000076',
@@ -130,45 +159,10 @@ def main():
         'ima_000029': 'ima_000041',
     }
 
-    ground_truth_test = {  # Annotations: Image in the query set (TEST) -> Correct image in the museum set
-        'ima_000000': 'ima_000030',
-        'ima_000001': 'ima_000102',
-        'ima_000002': 'ima_000100',
-        'ima_000003': 'ima_000094',
-        'ima_000004': 'ima_000056',
-        'ima_000005': 'ima_000010',
-        'ima_000006': 'ima_000101',
-        'ima_000007': 'ima_000000',
-        'ima_000008': 'ima_000107',
-        'ima_000009': 'ima_000082',
-        'ima_000010': 'ima_000108',
-        'ima_000011': 'ima_000106',
-        'ima_000012': 'ima_000067',
-        'ima_000013': 'ima_000078',
-        'ima_000014': 'ima_000063',
-        'ima_000015': 'ima_000097',
-        'ima_000016': 'ima_000034',
-        'ima_000017': 'ima_000047',
-        'ima_000018': 'ima_000021',
-        'ima_000019': 'ima_000015',
-        'ima_000020': 'ima_000068',
-        'ima_000021': 'ima_000046',
-        'ima_000022': 'ima_000026',
-        'ima_000023': 'ima_000032',
-        'ima_000024': 'ima_000075',
-        'ima_000025': 'ima_000019',
-        'ima_000026': 'ima_000057',
-        'ima_000027': 'ima_000098',
-        'ima_000028': 'ima_000093',
-        'ima_000029': 'ima_000020',
-
-    }
-    test_ground_truth(ground_truth=ground_truth, museum_set=museum_set, query_set=query_set)
-    test_ground_truth(ground_truth=ground_truth_test, museum_set=museum_set, query_set=query_set_test)
+    #test_ground_truth(ground_truth=ground_truth, museum_set=museum_set, query_set=query_set)
     eval_array = []
-    """"
     for query in query_set:
-        scores = retrieve_best_results(image_histH=query_set[query]['histH'], dataset=museum_set)
+        scores = retrieve_best_results(query_image=query_set[query]['image'], dataset=museum_set)
 
         eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[query]])
         print(eval)
@@ -181,7 +175,7 @@ def main():
     global_eval = np.mean(eval_array)
     print("----------------\nEvaluation: "+str(global_eval))
 
-    """
+
 
 if __name__ == "__main__":
     main()
