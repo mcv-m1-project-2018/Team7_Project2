@@ -1,13 +1,14 @@
+import argparse
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import argparse
+from descriptors.feat_hsv_hst import retrieve_best_results as retrieve_best_results_hsv, get_hsv_hist
 
-
-from dataset_w1_gt import ground_truth as ground_truth_val, ground_truth_test
 from data_handler import Data
-from feat_wavelet_hash import retrieve_best_results, get_hash
-from feat_hsv_hst import retrieve_best_results as retrieve_best_results_hsv, get_hsv_hist
+from dataset_w1_gt import ground_truth as ground_truth_val, ground_truth_test
+from descriptors.feat_wavelet_hash import retrieve_best_results, get_hash
+from evaluation import evaluation
 
 
 def show_results(scores, museum_set, query_image, ground_truth_image):
@@ -19,21 +20,6 @@ def show_results(scores, museum_set, query_image, ground_truth_image):
         RGB_image = cv2.cvtColor(museum_set[scores[i][0]]['image'], cv2.COLOR_BGR2RGB)
         plt.subplot(3, 5, 6 + i), plt.imshow(RGB_image)
     plt.show()
-
-
-def evaluation(predicted, actual, k=10):
-    score = 0.0
-    num_hits = 0.0
-
-    for i, p in enumerate(predicted):
-        if p in actual and p not in predicted[:i]:
-            num_hits += 1.0
-            score += num_hits / (i + 1.0)
-
-    if not actual:
-        return 0.0
-
-    return score / min(len(actual), k)
 
 
 def main(args):

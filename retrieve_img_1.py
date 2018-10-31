@@ -1,12 +1,14 @@
-import os
+import argparse
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import argparse
 
-from dataset_w1_gt import ground_truth as ground_truth_val, ground_truth_test
-from feat_hsv_hst import retrieve_best_results, get_hsv_hist
 from data_handler import Data
+from dataset_w1_gt import ground_truth as ground_truth_val, ground_truth_test
+from descriptors.feat_hsv_hst import retrieve_best_results, get_hsv_hist
+from evaluation import evaluation
+
 
 def show_results(scores, data, query_image, ground_truth_image, display = True):
     if display:
@@ -22,19 +24,6 @@ def show_results(scores, data, query_image, ground_truth_image, display = True):
         plt.show()
 
 
-def evaluation(predicted, actual, k=10):
-    score    = 0.0
-    num_hits = 0.0
-
-    for i,p in enumerate(predicted):
-        if p in actual and p not in predicted[:i]:
-            num_hits += 1.0
-            score += num_hits / (i+1.0)
-
-    if not actual:
-        return 0.0
-
-    return score / min(len(actual), k)
 
 
 def main(args):
