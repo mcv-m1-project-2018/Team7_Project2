@@ -107,13 +107,15 @@ def main(args):
     for q_im, q_name in query_imgs:
         scores = surf.retrieve_best_results(q_im, database_imgs, database_feats, query_feats[q_name])
 
-        if scores[0][1] < 100:  # if there are not enough matches set the scores to be a list with only -1 and 0 score
-            scores = [(-1, 0)]
+        if not args.week3:  # week 4 evaluation
+            # if there are not enough matches set the scores to be a list with only -1 and 0 score
+            if scores[0][1] < 100:
+                scores = [(-1, 0)]
+            eval = evaluation(predicted=[s[0] for s in scores], actual=ground_truth[q_name])
+        else:  # week 3 evaluation
+            eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
 
-        eval = evaluation(predicted=[s[0] for s in scores], actual=ground_truth[q_name])
         eval_array.append(eval)
-
-        # print(scores[:3], "   ", ground_truth[q_name]) # top 3 + gt
         print(eval)
 
     global_eval = np.mean(eval_array)

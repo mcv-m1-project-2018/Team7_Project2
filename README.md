@@ -38,7 +38,7 @@ To run this method on the test queries run ````python retrieve_img_2.py  -use_hi
 
 ## Results
 
-Those are the results obtained with the different matching methods (Intel Core I7 2600K @3.40GHz). The number in the hashing method is the size of the hash: 
+Those are the results obtained with the different matching methods (Intel Core I7 2700K @3.40GHz). The number in the hashing method is the size of the hash: 
 
 Method | Histogram based| DWT hash 4 | DWT hash 8 | DWT hash 16 | DWT hash 32 | Hash 16 + Histogram
 --- | --- | --- | --- |--- |--- |---  
