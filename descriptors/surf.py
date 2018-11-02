@@ -5,7 +5,7 @@ class Surf:
     """
     Class to compute surf features. Avoids creating cv2's surf object more than once.
     """
-    def __init__(self, hessian_threshold=300, matching_method='knn'):
+    def __init__(self, hessian_threshold=350, matching_method='knn'):
         """
 
         :param hessian_threshold:
