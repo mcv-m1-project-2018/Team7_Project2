@@ -2,7 +2,13 @@
 museum_set_random/
 query_devel_random/
 query_test_random/
+query_devel_W4/
+BBDD_W4/
+features/
+
+
+#Other stuff
 .idea/
 venv/
-__pycache__/
+./__pycache__/
 *.pyc

@@ -63,5 +63,39 @@ ground_truth_test = { #Annotations: Image in the query set (TEST) -> Correct ima
     'ima_000027': 'ima_000098',
     'ima_000028': 'ima_000093',
     'ima_000029': 'ima_000020',
+}
 
+ground_truth_W4 = {  # ground truth week4. Be careful, when calling the evaluation function pass this ground truth like
+                     # this : "actual=ground_truth[q_name]" as the elements are already lists (instead of "
+                     # actual=[ground_truth[q_name]]")
+    'ima_000000': [-1],
+    'ima_000001': [-1],
+    'ima_000002': ['ima_000115'],
+    'ima_000003': [-1],
+    'ima_000004': [-1],
+    'ima_000005': ['ima_000099'],
+    'ima_000006': [-1],
+    'ima_000007': ['ima_000089'],
+    'ima_000008': ['ima_000019'],
+    'ima_000009': ['ima_000085'],
+    'ima_000010': ['ima_000090'],
+    'ima_000011': ['ima_000121', 'ima_000117'],
+    'ima_000012': [-1],
+    'ima_000013': [-1],
+    'ima_000014': ['ima_000130'],
+    'ima_000015': ['ima_000006', 'ima_000084'],
+    'ima_000016': ['ima_000035', 'ima_000048', 'ima_000052'],
+    'ima_000017': ['ima_000118'],
+    'ima_000018': [-1],
+    'ima_000019': [-1],
+    'ima_000020': [-1],
+    'ima_000021': [-1],
+    'ima_000022': ['ima_000060'],
+    'ima_000023': ['ima_000119', 'ima_000128'],
+    'ima_000024': [-1],
+    'ima_000025': ['ima_000047'],
+    'ima_000026': [-1],
+    'ima_000027': ['ima_000041'],
+    'ima_000028': [-1],
+    'ima_000029': ['ima_000126', 'ima_000123']
 }
