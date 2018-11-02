@@ -1,13 +1,19 @@
 import cv2
 
 
-class Surf():
+class Surf:
     """
-    Class to compute surf features. Avoids creating cv2's surf object mode than once.
+    Class to compute surf features. Avoids creating cv2's surf object more than once.
     """
-    def __init__(self, hessian_threshold=300):
+    def __init__(self, hessian_threshold=300, matching_method='knn'):
+        """
+
+        :param hessian_threshold:
+        :param matching_method: possible values : knn, bf, flann
+        """
         self.surf_obj = cv2.xfeatures2d.SURF_create()
         self.surf_obj.setHessianThreshold(hessian_threshold)
+        self.matching_method = matching_method
 
     def set_hessian_threshold(self, thr):
         self.surf_obj.setHessianThreshold(thr)
@@ -39,26 +45,43 @@ class Surf():
             self.set_hessian_threshold(old)
         return descriptors
 
-    @staticmethod
-    def match_features(descriptors1, descriptors2, threshold=0.75):
+    def match_features(self, descriptors1, descriptors2, threshold=0.75):
         """
-        Matches features with KNN. We could try using FLANN
-        TODO: try FLANN
+        Matches features with several methods. Brute force KNN seems to be the fastest one.
         :param descriptors1:
         :param descriptors2:
         :param threshold: some threshold thing just leave it be
         :return: matches above the threshold
         """
-        bf = cv2.BFMatcher()
-        matches = bf.knnMatch(descriptors1, descriptors2, k=2)
-
-        if len(matches) == 0:
-            return []
-
         matches_good = []
-        for m, n in matches:
-            if m.distance < threshold * n.distance:
-                matches_good.append([m])
+
+        if self.matching_method == 'knn':
+            bf = cv2.BFMatcher()
+            matches = bf.knnMatch(descriptors1, descriptors2, k=2)
+
+            if len(matches) == 0:
+                return []
+
+            matches_good = []
+            for m, n in matches:
+                if m.distance < threshold * n.distance:
+                    matches_good.append([m])
+
+        if self.matching_method == 'bf':
+            bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
+            matches_good = bf.match(descriptors1, descriptors2)
+
+        if self.matching_method == 'flann':
+            FLANN_INDEX_KDTREE = 1
+            index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+            search_params = dict(checks=50)  # or pass empty dictionary
+            flann = cv2.FlannBasedMatcher(index_params, search_params)
+            matches = flann.knnMatch(descriptors1, descriptors2, k=2)
+
+            matches_good = []
+            for m, n in matches:
+                if m.distance < threshold * n.distance:
+                    matches_good.append([m])
 
         return matches_good
 

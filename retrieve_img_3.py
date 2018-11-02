@@ -10,6 +10,7 @@ from data_handler import Data
 from dataset_w1_gt import ground_truth as ground_truth_val, ground_truth_test, ground_truth_W4
 from evaluation import evaluation
 from descriptors.surf import Surf
+from descriptors.orb import Orb
 
 
 def show_results(scores, data, query_image, ground_truth_image, display=True):
@@ -26,47 +27,56 @@ def show_results(scores, data, query_image, ground_truth_image, display=True):
         plt.show()
 
 
-def get_features(surf, data, query_folder, database_dir):
+def get_features(method, data, query_folder, database_dir, method_name):
     """
     Computes or loads the features. The first time has to compute all the features and adapt the threshold, but once
-    computed and stored it's faster.
-    :param surf:  surf object
+    computed and stored it's faster. This function has to check for the files for every query and week, so it's kind
+    of messy.
+    :param method:  method object (surf or orb)
     :param data:  data
     :param query_folder: used to name the pkl feature files
     :param database_dir: db directory
+    :param method_name: method name (string surf or orb)
     :return: database features, query features
     """
     # compute the features just once. we only keep the descriptors (pickling cv2 keypoints is a nightmare, but we don't
     # use them anyway)
-    surf.set_hessian_threshold(350)
+    if method_name == 'surf':
+        method.set_hessian_threshold(350)
 
     if not os.path.isdir("features"):
         os.mkdir("features")
 
     # db features
-    if os.path.isfile("features/surf_features_" + database_dir + ".pkl"):
+    if os.path.isfile("features/" + method_name + "_features_" + database_dir + ".pkl"):
         print("loading " + database_dir + " features...")
-        with open("features/surf_features_" + database_dir + ".pkl", "rb") as f:
+        with open("features/" + method_name + "_features_" + database_dir + ".pkl", "rb") as f:
             database_feats = pickle.load(f)
     else:
         print("computing " + database_dir + " features...")
         database_feats = {}
         for im, name in data.database_imgs:
-            database_feats[name] = surf.detectAndCompute(im, adapt_threshold=True, step=1000, max_features=1000)
-        with open("features/surf_features_" + database_dir + ".pkl", "wb") as f:
+            if method_name == 'surf':
+                database_feats[name] = method.detectAndCompute(im, adapt_threshold=True, step=1000, max_features=1000)
+            if method_name == 'orb':
+                database_feats[name] = method.detectAndCompute(im)
+        with open("features/" + method_name + "_features_" + database_dir + ".pkl", "wb") as f:
             pickle.dump(database_feats, f)
 
     # query features
-    if os.path.isfile("features/surf_features_" + query_folder + ".pkl"):
+    if os.path.isfile("features/" + method_name + "_features_" + query_folder + ".pkl"):
         print("loading " + query_folder + " features...")
-        with open("features/surf_features_" + query_folder + ".pkl", "rb") as f:
+        with open("features/" + method_name + "_features_" + query_folder + ".pkl", "rb") as f:
                 query_feats = pickle.load(f)
     else:
         query_feats = {}
         print("computing " + query_folder + " features...")
         for im, name in data.query_imgs:
-            query_feats[name] = surf.detectAndCompute(im, adapt_threshold=True, step=1000, max_features=1000)
-        with open("features/surf_features_" + query_folder + ".pkl", "wb") as f:
+            if method_name == 'surf':
+                query_feats[name] = method.detectAndCompute(im, adapt_threshold=True, step=1000, max_features=1000)
+            if method_name == 'orb':
+                query_feats[name] = method.detectAndCompute(im)
+        with open("features/" + method_name + "_features_" + query_folder + ".pkl", "wb") as f:
             pickle.dump(query_feats, f)
 
     return database_feats, query_feats
@@ -93,23 +103,31 @@ def main(args):
         database_dir = 'BBDD_W4'
         ground_truth = ground_truth_W4
 
+    if args.use_orb:
+        method_name = 'orb'
+        method = Orb()
+        # minimum number of features matched allowed between the query and the top match in the scores:
+        min_features = 25
+    else:
+        method_name = 'surf'
+        method = Surf()
+        min_features = 100
+
     data = Data(database_dir=database_dir, query_dir=query_folder)
 
     eval_array = []
-    surf = Surf()  # Surf object (from descriptors folder)
 
     query_imgs = [[im, name] for im, name in data.query_imgs]
     database_imgs = [[im, name] for im, name in data.database_imgs]
 
-    # here the features are created/loaded
-    database_feats, query_feats = get_features(surf, data, query_folder, database_dir)
+    database_feats, query_feats = get_features(method, data, query_folder, database_dir, method_name)
 
     for q_im, q_name in query_imgs:
-        scores = surf.retrieve_best_results(q_im, database_imgs, database_feats, query_feats[q_name])
+        scores = method.retrieve_best_results(q_im, database_imgs, database_feats, query_feats[q_name])
 
         if not args.week3:  # week 4 evaluation
             # if there are not enough matches set the scores to be a list with only -1 and 0 score
-            if scores[0][1] < 100:
+            if scores[0][1] < min_features:
                 scores = [(-1, 0)]
             eval = evaluation(predicted=[s[0] for s in scores], actual=ground_truth[q_name])
         else:  # week 3 evaluation
@@ -129,6 +147,8 @@ if __name__ == "__main__":
     parser.add_argument('-test', help='runs the code on the test dataset (only week3 by now)',
                         action='store_true')
     parser.add_argument('-week3', help='uses the queries and the data from the week 3',
+                        action='store_true')
+    parser.add_argument('-use_orb', help='uses ORB to match the images',
                         action='store_true')
     args = parser.parse_args()
     main(args)
