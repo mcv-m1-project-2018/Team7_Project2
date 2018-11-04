@@ -158,6 +158,8 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
     results_hist = []
 
     eval_array = []
+
+    res = []
     for q_im, q_name in query_imgs:
         scores = method.retrieve_best_results(q_im, database_imgs, database_feats, query_feats[q_name])
         results_hist.append(scores)
@@ -173,15 +175,22 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
         else:  # week 3 evaluation
             eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
         eval_array.append(eval)
-        
-        if not forTest:
+
+        res.append([score for score, _ in scores])
+
+        if forTest:
             print(ground_truth[q_name])
             print(eval)
 
     global_eval = np.mean(eval_array)
     print("----------------\nEvaluation: " + str(global_eval))
+    q = [name for _, name in data.query_imgs]
+    with open("result.pkl", "wb") as f:
+        pickle.dump(res, f)
+    with open("query.pkl", "wb") as f:
+        pickle.dump(q, f)
 
-    if not forTest:    
+    if forTest:
         # ------------------------------------- tuning
         print('\n\n--- tuning ---')
         best_th = None
@@ -263,10 +272,8 @@ if __name__ == "__main__":
         query_folder = "query_devel_random"
         ground_truth = ground_truth_val
     elif args.test and not args.week3:          # week 4 test set
-        query_folder = None
-        ground_truth = None
-        print("no test set for week4 yet")
-        exit(0)
+        query_folder = "query_test"
+        ground_truth = ground_truth_W4          # dummy ground truth
     else:                                       # week 4 dev set
         query_folder = "query_devel_W4"
         ground_truth = ground_truth_W4

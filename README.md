@@ -9,7 +9,7 @@ In order to run our code, you need to place the following folders in the root fo
 
 Week 3: ```museum_set_random```, ```query_devel_random```, ````query_test_random````
 
-Week 4: ````BBDD_W4````, ````query_devel_W4```` 
+Week 4: ````BBDD_W4````, ````query_devel_W4````, ````query_test````  
 
 ## Running the code - WEEK 3
 We have implemented two main methods, one using histogram based matching and one using Discrete Wavelet Transformation based hashing. We have also combined both in order to increase the scores. 
@@ -52,7 +52,7 @@ Surf, Sift and Orb are run from the ````retrieve_img_3.py```` file. To specify t
 ````-use_surf```` to use Surf, ````-use_sift```` for Sift and ````-use_orb```` for Orb. For example, to evaluate the 
 development query set with Orb run ````python retrieve_img_3.py -use_orb````.
 
-The code runs by default on this week's development query set. If you want to run the code on this week's query set use
+The code runs by default on this week's development query set. If you want to run the code on this week's test query set use
 the ````-test```` flag. For example, run ````-python retrieve_img_3.py -test -use_surf```` to evaluate the test set with Surf. 
  
  To run the code with week's 3 development query set use the flag ````-week3````. Finally, to 

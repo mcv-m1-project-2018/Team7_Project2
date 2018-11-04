@@ -5,7 +5,7 @@ query_test_random/
 query_devel_W4/
 BBDD_W4/
 features/
-
+query_test/
 
 #Other stuff
 .idea/
