@@ -138,7 +138,7 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
     if method_name == 'orb':
         method = Orb()
         #min_features = 25
-        th = 0.626
+        th = 0.0205078125
     elif method_name == 'surf':
         method = Surf()
         #min_features = 100
