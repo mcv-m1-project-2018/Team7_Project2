@@ -71,18 +71,19 @@ def get_features(method, data, query_folder, database_dir, method_name):
         with open(db_name, "wb") as f:
             pickle.dump(database_feats, f)
 
-    unserialized = {}
-    for name in database_feats:
-        unserialized[name] = [[],[]]
-        for f in database_feats[name]:
-            kp   = cv2.KeyPoint(x=f[0][0],y=f[0][1],_size=f[1], _angle=f[2], 
-                                _response=f[3], _octave=f[4], _class_id=f[5]) 
-            desc = f[6] 
-            unserialized[name][0].append(kp)
-            unserialized[name][1].append(desc)
-        if(len( unserialized[name][1] )):
-            unserialized[name][1] = np.concatenate( unserialized[name][1], axis=0 )
-    database_feats = unserialized
+    if method_name == 'sift':
+        unserialized = {}
+        for name in database_feats:
+            unserialized[name] = [[],[]]
+            for f in database_feats[name]:
+                kp   = cv2.KeyPoint(x=f[0][0],y=f[0][1],_size=f[1], _angle=f[2],
+                                    _response=f[3], _octave=f[4], _class_id=f[5])
+                desc = f[6]
+                unserialized[name][0].append(kp)
+                unserialized[name][1].append(desc)
+            if(len( unserialized[name][1] )):
+                unserialized[name][1] = np.concatenate( unserialized[name][1], axis=0 )
+        database_feats = unserialized
 
 
     # query features
@@ -111,19 +112,20 @@ def get_features(method, data, query_folder, database_dir, method_name):
         with open(query_name, "wb") as f:
             pickle.dump(query_feats, f)
 
-    unserialized = {}
-    for name in query_feats:
-        unserialized[name] = [[],[]]
-        for f in query_feats[name]:
-            kp   = cv2.KeyPoint(x=f[0][0],y=f[0][1],_size=f[1], _angle=f[2], 
-                                _response=f[3], _octave=f[4], _class_id=f[5]) 
-            desc = f[6] 
-            unserialized[name][0].append(kp)
-            unserialized[name][1].append(desc)
+    if method_name == 'sift':
+        unserialized = {}
+        for name in query_feats:
+            unserialized[name] = [[],[]]
+            for f in query_feats[name]:
+                kp   = cv2.KeyPoint(x=f[0][0],y=f[0][1],_size=f[1], _angle=f[2],
+                                    _response=f[3], _octave=f[4], _class_id=f[5])
+                desc = f[6]
+                unserialized[name][0].append(kp)
+                unserialized[name][1].append(desc)
 
-        if len( unserialized[name][1] ):
-            unserialized[name][1] = np.concatenate( unserialized[name][1], axis=0 )
-    query_feats = unserialized
+            if len( unserialized[name][1] ):
+                unserialized[name][1] = np.concatenate( unserialized[name][1], axis=0 )
+        query_feats = unserialized
 
     return database_feats, query_feats
 

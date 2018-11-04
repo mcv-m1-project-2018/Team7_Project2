@@ -83,10 +83,3 @@ class Orb:
         scores.sort(key=lambda s: s[1], reverse=True)
 
         return scores[:K]
-
-
-
-
-
-
-
