@@ -165,14 +165,14 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
             features_num = len(query_feats[q_name][0])
         else:
             features_num = len(query_feats[q_name])
-
+        features_num = max(features_num,1)
         if not args.week3:  # week 4 evaluation
             if scores[0][1] / features_num < th:  # minimum number of features matched allowed (-1 otherwise)
                 scores = [(-1, 0)]
             eval = evaluation(predicted=[s[0] for s in scores], actual=ground_truth[q_name])
         else:  # week 3 evaluation
             eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
-            eval_array.append(eval)
+        eval_array.append(eval)
         
         if not forTest:
             print(ground_truth[q_name])
@@ -193,7 +193,8 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
                 if (method_name == 'sift'):
                     features_num = len(query_feats[q_name][0])
                 else:
-                    features_num = len(query_feats[q_name])            
+                    features_num = len(query_feats[q_name])  
+                features_num = max(features_num,1)          
                 if not args.week3:  # week 4 evaluation
                     if scores[0][1] / features_num < th:  # minimum number of features matched allowed (-1 otherwise)
                         scores = [(-1, 0)]
@@ -201,7 +202,9 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
                 else:  # week 3 evaluation
                     eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
                 eval_array.append(eval)
+
             global_eval = np.mean(eval_array)
+
             if global_eval > best_score:
                 best_score = global_eval
                 best_th = th
@@ -213,7 +216,8 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
             if (method_name == 'sift'):
                 features_num = len(query_feats[q_name][0])
             else:
-                features_num = len(query_feats[q_name])          
+                features_num = len(query_feats[q_name])      
+            features_num = max(features_num,1)
             print('=====================')
             print('num_kps:',features_num)
             print('best match:', scores[0])
