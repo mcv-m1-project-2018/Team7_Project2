@@ -48,12 +48,12 @@ For the fourth week we have used Surf, Sift and Orb to retrieve the image querie
 
 ### SURF, SIFT and ORB
 
-Surf, Sift and Orb are run from the ````retrieve_img_3.py```` file. To specify the feature matching method use 
+Surf, Sift and Orb are run from the ````retrieve_img_4.py```` file. To specify the feature matching method use 
 ````-use_surf```` to use Surf, ````-use_sift```` for Sift and ````-use_orb```` for Orb. For example, to evaluate the 
-development query set with Orb run ````python retrieve_img_3.py -use_orb````.
+development query set with Orb run ````python retrieve_img_4.py -use_orb````.
 
 The code runs by default on this week's development query set. If you want to run the code on this week's test query set use
-the ````-test```` flag. For example, run ````-python retrieve_img_3.py -test -use_surf```` to evaluate the test set with Surf. 
+the ````-test```` flag. For example, run ````-python retrieve_img_4.py -test -use_surf```` to evaluate the test set with Surf. 
  
  To run the code with week's 3 development query set use the flag ````-week3````. Finally, to 
 run the test set from the third week use the ````-test```` flag jointly with the ````-week3```` flag.
