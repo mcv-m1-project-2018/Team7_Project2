@@ -11,7 +11,7 @@ from dataset_w1_gt import ground_truth as ground_truth_val, ground_truth_test, g
 from evaluation import evaluation
 from descriptors.surf import Surf
 from descriptors.orb import Orb
-
+from descriptors.sift import Sift
 
 def show_results(scores, data, query_image, ground_truth_image, display=True):
     if display:
@@ -59,8 +59,31 @@ def get_features(method, data, query_folder, database_dir, method_name):
                 database_feats[name] = method.detectAndCompute(im, adapt_threshold=True, step=1000, max_features=1000)
             if method_name == 'orb':
                 database_feats[name] = method.detectAndCompute(im)
+            if method_name == 'sift':
+                kps, descriptors = method.detectAndCompute(im)
+                features = []
+                if(len(kps)):
+                    for kp,desc in zip(kps,descriptors):
+                        temp = (kp.pt, kp.size, kp.angle, kp.response, kp.octave, kp.class_id, desc)  
+                        features.append(temp)
+                database_feats[name] = features
+                #database_feats[name] = method.detectAndCompute(im)
         with open(db_name, "wb") as f:
             pickle.dump(database_feats, f)
+
+    unserialized = {}
+    for name in database_feats:
+        unserialized[name] = [[],[]]
+        for f in database_feats[name]:
+            kp   = cv2.KeyPoint(x=f[0][0],y=f[0][1],_size=f[1], _angle=f[2], 
+                                _response=f[3], _octave=f[4], _class_id=f[5]) 
+            desc = f[6] 
+            unserialized[name][0].append(kp)
+            unserialized[name][1].append(desc)
+        if(len( unserialized[name][1] )):
+            unserialized[name][1] = np.concatenate( unserialized[name][1], axis=0 )
+    database_feats = unserialized
+
 
     # query features
     query_name = "features/" + method_name + "_features_" + query_folder + ".pkl"
@@ -76,8 +99,31 @@ def get_features(method, data, query_folder, database_dir, method_name):
                 query_feats[name] = method.detectAndCompute(im, adapt_threshold=True, step=1000, max_features=1000)
             if method_name == 'orb':
                 query_feats[name] = method.detectAndCompute(im)
+            if method_name == 'sift':
+                kps, descriptors = method.detectAndCompute(im)
+                features = []
+                if(len(kps)):
+                    for kp,desc in zip(kps,descriptors):
+                        temp = (kp.pt, kp.size, kp.angle, kp.response, kp.octave, kp.class_id, desc)  
+                        features.append(temp)
+                query_feats[name] = features
+
         with open(query_name, "wb") as f:
             pickle.dump(query_feats, f)
+
+    unserialized = {}
+    for name in query_feats:
+        unserialized[name] = [[],[]]
+        for f in query_feats[name]:
+            kp   = cv2.KeyPoint(x=f[0][0],y=f[0][1],_size=f[1], _angle=f[2], 
+                                _response=f[3], _octave=f[4], _class_id=f[5]) 
+            desc = f[6] 
+            unserialized[name][0].append(kp)
+            unserialized[name][1].append(desc)
+
+        if len( unserialized[name][1] ):
+            unserialized[name][1] = np.concatenate( unserialized[name][1], axis=0 )
+    query_feats = unserialized
 
     return database_feats, query_feats
 
@@ -86,9 +132,13 @@ def main(database_dir, query_folder, ground_truth, method_name):
     if method_name == 'orb':
         method = Orb()
         min_features = 25
-    else:
+    elif method_name == 'surf':
         method = Surf()
         min_features = 100
+    elif method_name == 'sift':
+        method = Sift()
+        min_features = 100
+
 
     data = Data(database_dir=database_dir, query_dir=query_folder)
 
@@ -96,10 +146,11 @@ def main(database_dir, query_folder, ground_truth, method_name):
     database_imgs = [[im, name] for im, name in data.database_imgs]
     database_feats, query_feats = get_features(method, data, query_folder, database_dir, method_name)
 
+
     eval_array = []
     for q_im, q_name in query_imgs:
         scores = method.retrieve_best_results(q_im, database_imgs, database_feats, query_feats[q_name])
-
+        print(scores)
         if not args.week3:  # week 4 evaluation
             if scores[0][1] < min_features:  # minimum number of features matched allowed (-1 otherwise)
                 scores = [(-1, 0)]
@@ -123,6 +174,10 @@ if __name__ == "__main__":
     parser.add_argument('-week3', help='uses the queries and the data from the week 3',
                         action='store_true')
     parser.add_argument('-use_orb', help='uses ORB to match the images',
+                        action='store_true')
+    parser.add_argument('-use_surf', help='uses ORB to match the images',
+                        action='store_true')
+    parser.add_argument('-use_sift', help='uses sift to match the images',
                         action='store_true')
     args = parser.parse_args()
 
@@ -150,7 +205,9 @@ if __name__ == "__main__":
     print(query_folder)
     if args.use_orb:
         method_name = 'orb'
-    else:
+    elif args.use_surf:
         method_name = 'surf'
+    elif args.use_sift:
+        method_name = 'sift'
 
     main(database_dir, query_folder, ground_truth, method_name)

@@ -9,8 +9,8 @@ def find_keypoints_harris(image, subpixel_accuracy=True):
 
     harris_image = cv2.cornerHarris(src=gray,
                            blockSize= 2, #size of the neighbourhood for corner detection
-                           ksize=3, #Aperture parameter of Sobel derivative used
-                           k=0.04) #Harris detector free parameter in the equation R=det(M)−k(trace(M))2 TODO: Tune
+                           ksize=3,      #Aperture parameter of Sobel derivative used
+                           k=0.04)       #Harris detector free parameter in the equation R=det(M)−k(trace(M))2 TODO: Tune
 
     # Threshold for an optimal value, it may vary depending on the image. TODO: Tune
     retval, corners_image = cv2.threshold(harris_image, 0.01 * harris_image.max(), 255, 0)
@@ -38,15 +38,19 @@ def find_keypoints_harris(image, subpixel_accuracy=True):
 
 
 if __name__ == "__main__":
-    image = cv2.imread('../museum_set_random/ima_000041.jpg')
-    corners = find_keypoints_harris(image, subpixel_accuracy=False)
+    image   = cv2.imread('../museum_set_random/ima_000041.jpg')
+    corners = find_keypoints_harris(image, subpixel_accuracy=True)
+
     for point in corners:
         print(point)
         image[point[0], point[1]] = (0, 0, 255)
+    
     corners = find_keypoints_harris(image)
+    
     for point in corners:
         print(point)
         image[point[0], point[1]] = (0, 255, 0)
+
     cv2.imshow("corners", image)
     cv2.waitKey(0)
 
