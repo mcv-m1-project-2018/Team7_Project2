@@ -1,13 +1,15 @@
 import cv2
-
+import numpy as np
 
 class Sift:
     def __init__(self, matching_method='flann'):
-        self.sift_obj = cv2.xfeatures2d.SIFT_create(nfeatures=100,
-                                                    nOctaveLayers=3,
-                                                    contrastThreshold=0.03,
-                                                    edgeThreshold=10,
-                                                    sigma=5)
+        self.sift_obj = cv2.xfeatures2d.SIFT_create(nfeatures=2000)
+        """
+        nOctaveLayers=3,
+        contrastThreshold=0.03,
+        edgeThreshold=10,
+        sigma=5
+        """
         self.matching_method = matching_method
         #self.sift_obj.setMaxFeatures(100)
 
@@ -24,7 +26,7 @@ class Sift:
         
         return keypoints, descriptors
 
-    def match_features(self, descriptors1, descriptors2, threshold=0.9):
+    def match_features(self, descriptors1, descriptors2, threshold=0.77):
         """
         Matches features with several methods. Brute force KNN seems to be the fastest one.
         :param descriptors1:
@@ -54,7 +56,7 @@ class Sift:
         if self.matching_method == 'flann':
             FLANN_INDEX_KDTREE = 1
             index_params  = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-            search_params = dict(checks=50)  # or pass empty dictionary
+            search_params = dict(checks=100)  # or pass empty dictionary
             flann = cv2.FlannBasedMatcher(index_params, search_params)
             matches = flann.knnMatch(descriptors1, descriptors2, k=2)
 
@@ -77,26 +79,35 @@ class Sift:
         """
         scores     = []
         best_score = 0
-        best_idx   = 0 
+        best_idx   = 0
+        best_matches = []
         for idx, [d_image, d_name] in enumerate( database_imgs ):
-            d_desc = database_features[d_name][1]
-            #print(q_feat[1][0].shape)
-            #print(d_desc[0].shape)
-            matches = self.match_features(q_feat[1], d_desc)
-            scores.append((d_name, len(matches)))
-            if(len(matches) > best_score):
-                best_score = len(matches)
-                best_idx   = idx
+            #print(d_name)
+            if 1==1:
+                d_desc = database_features[d_name][1]
+                matches = self.match_features(q_feat[1], d_desc)
+                scores.append((d_name, len(matches)))
+                if(len(matches) > best_score):
+                    best_score = len(matches)
+                    best_idx   = idx
+                    best_matches = np.copy(matches)
             
         scores.sort(key=lambda s: s[1], reverse=True)
 
+        #print(len(best_matches))
+
+        """
         img3 = cv2.drawMatchesKnn(database_imgs[best_idx][0], 
                                   database_features[database_imgs[best_idx][1]][0],
                                   q_image,q_feat[0],
-                                  matches,q_image)
+                                  best_matches,q_image)
+        print(scores)
+        print(len(best_matches))
 
-        cv2.imshow('matches', img3)
+        cv2.imshow('matches_'+str(len(best_matches)), img3)
+        cv2.imwrite('matches.png',img3)
         cv2.waitKey()
+
             #"""
 
 

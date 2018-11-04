@@ -44,7 +44,7 @@ def get_hsv_hist(img,pyramid = [1,4,16,32,128,256], visualize=True):
     return pyramid_hsv
 
 
-def compare_histograms(pyramid_hsv_1, pyramid_hsv_2, method):
+def compare_histograms(pyramid_hsv_1, pyramid_hsv_2, method=cv2.HISTCMP_BHATTACHARYYA):
     score = 0
 
     norm_term = [len(regions_size) for regions_size in pyramid_hsv_1]

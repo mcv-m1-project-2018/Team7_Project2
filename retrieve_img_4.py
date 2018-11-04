@@ -67,6 +67,8 @@ def get_features(method, data, query_folder, database_dir, method_name):
                         temp = (kp.pt, kp.size, kp.angle, kp.response, kp.octave, kp.class_id, desc)  
                         features.append(temp)
                 database_feats[name] = features
+            #if(len(database_feats)>2):
+             #   break
                 #database_feats[name] = method.detectAndCompute(im)
         with open(db_name, "wb") as f:
             pickle.dump(database_feats, f)
@@ -82,7 +84,7 @@ def get_features(method, data, query_folder, database_dir, method_name):
                 unserialized[name][0].append(kp)
                 unserialized[name][1].append(desc)
             if(len( unserialized[name][1] )):
-                unserialized[name][1] = np.concatenate( unserialized[name][1], axis=0 )
+                unserialized[name][1] =  np.vstack( unserialized[name][1])
         database_feats = unserialized
 
 
@@ -108,6 +110,8 @@ def get_features(method, data, query_folder, database_dir, method_name):
                         temp = (kp.pt, kp.size, kp.angle, kp.response, kp.octave, kp.class_id, desc)  
                         features.append(temp)
                 query_feats[name] = features
+            #if(len(query_feats)>10):
+            #    break
 
         with open(query_name, "wb") as f:
             pickle.dump(query_feats, f)
@@ -124,22 +128,25 @@ def get_features(method, data, query_folder, database_dir, method_name):
                 unserialized[name][1].append(desc)
 
             if len( unserialized[name][1] ):
-                unserialized[name][1] = np.concatenate( unserialized[name][1], axis=0 )
+                unserialized[name][1] = np.vstack( unserialized[name][1])
         query_feats = unserialized
 
     return database_feats, query_feats
 
 
-def main(database_dir, query_folder, ground_truth, method_name):
+def main(database_dir, query_folder, ground_truth, method_name, forTest = False):
     if method_name == 'orb':
         method = Orb()
-        min_features = 25
+        #min_features = 25
+        th = 0.626
     elif method_name == 'surf':
         method = Surf()
-        min_features = 100
+        #min_features = 100
+        th = 0.1669921875
     elif method_name == 'sift':
         method = Sift()
-        min_features = 100
+        #min_features = 70
+        th = 0.155
 
 
     data = Data(database_dir=database_dir, query_dir=query_folder)
@@ -148,23 +155,79 @@ def main(database_dir, query_folder, ground_truth, method_name):
     database_imgs = [[im, name] for im, name in data.database_imgs]
     database_feats, query_feats = get_features(method, data, query_folder, database_dir, method_name)
 
+    results_hist = []
 
     eval_array = []
     for q_im, q_name in query_imgs:
         scores = method.retrieve_best_results(q_im, database_imgs, database_feats, query_feats[q_name])
-        print(scores)
+        results_hist.append(scores)
+        if method_name == 'sift':
+            features_num = len(query_feats[q_name][0])
+        else:
+            features_num = len(query_feats[q_name])
+
         if not args.week3:  # week 4 evaluation
-            if scores[0][1] < min_features:  # minimum number of features matched allowed (-1 otherwise)
+            if scores[0][1] / features_num < th:  # minimum number of features matched allowed (-1 otherwise)
                 scores = [(-1, 0)]
             eval = evaluation(predicted=[s[0] for s in scores], actual=ground_truth[q_name])
         else:  # week 3 evaluation
             eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
-
-        eval_array.append(eval)
-        print(eval)
+            eval_array.append(eval)
+        
+        if not forTest:
+            print(ground_truth[q_name])
+            print(eval)
 
     global_eval = np.mean(eval_array)
     print("----------------\nEvaluation: " + str(global_eval))
+
+    if not forTest:    
+        # ------------------------------------- tuning
+        print('\n\n--- tuning ---')
+        best_th = None
+        best_score = 0
+        for th_i in range(1,1024,1):
+            eval_array = []
+            th = th_i/1024
+            for scores, [q_im, q_name] in zip(results_hist, query_imgs):
+                if (method_name == 'sift'):
+                    features_num = len(query_feats[q_name][0])
+                else:
+                    features_num = len(query_feats[q_name])            
+                if not args.week3:  # week 4 evaluation
+                    if scores[0][1] / features_num < th:  # minimum number of features matched allowed (-1 otherwise)
+                        scores = [(-1, 0)]
+                    eval = evaluation(predicted=[s[0] for s in scores], actual=ground_truth[q_name])
+                else:  # week 3 evaluation
+                    eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
+                eval_array.append(eval)
+            global_eval = np.mean(eval_array)
+            if global_eval > best_score:
+                best_score = global_eval
+                best_th = th
+        print('best_th = ', best_th)
+        print('best_score = ', best_score)
+        # ------------------------------------- print details with best th
+        eval_array = []
+        for scores, [q_im, q_name] in zip(results_hist, query_imgs):
+            if (method_name == 'sift'):
+                features_num = len(query_feats[q_name][0])
+            else:
+                features_num = len(query_feats[q_name])          
+            print('=====================')
+            print('num_kps:',features_num)
+            print('best match:', scores[0])
+            if not args.week3:  # week 4 evaluation
+                if scores[0][1] / features_num < best_th:  # minimum number of features matched allowed (-1 otherwise)
+                    scores = [(-1, 0)]
+                eval = evaluation(predicted=[s[0] for s in scores], actual=ground_truth[q_name])
+            else:  # week 3 evaluation
+                eval = evaluation(predicted=[s[0] for s in scores], actual=[ground_truth[q_name]])
+            eval_array.append(eval)
+            print(eval)
+        global_eval = np.mean(eval_array)
+        print("----------------\nEvaluation: " + str(global_eval))
+
 
     return 0
 
