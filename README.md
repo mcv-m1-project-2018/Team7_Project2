@@ -24,7 +24,9 @@ To run this method on the test queries run ````python retrieve_img_1.py -test```
 
 ### DWT based hashing matching
 
-This method uses DWT based hashing to compare the images. This hashing method scales the images to a certain size and computes their hash using the discrete wavelet transformation. We calculate the distance of the hashes in order to compute the difference between two images. 
+This method uses DWT based hashing to compare the images. This hashing method scales the images to a certain size and 
+computes their hash using the discrete wavelet transformation. We calculate the distance of the hashes in order to 
+compute the difference between two images. 
 
 In order to execute this method run ````python retrieve_img_2.py````.
 
@@ -42,20 +44,19 @@ To run this method on the test queries run ````python retrieve_img_2.py  -use_hi
 
 ## Running the code - WEEK 4
 
-maybe a little description here
+For the fourth week we have used Surf, Sift and Orb to retrieve the image queries.
 
-### SURF and ORB
+### SURF, SIFT and ORB
 
-Surf and Orb are run from the ````retrieve_img_3.py```` file. 
+Surf, Sift and Orb are run from the ````retrieve_img_3.py```` file. To specify the feature matching method use 
+````-use_surf```` to use Surf, ````-use_sift```` for Sift and ````-use_orb```` for Orb. For example, to evaluate the 
+development query set with Orb run ````python retrieve_img_3.py -use_orb````.
 
-To use Surf on this week's development queries you have to run  ````python retrieve_img_3.py```` . If you want to evaluate
-the test set run ````python retrieve_img_3.py -test````. You can also use week's 3 queries using the ````-week3```` 
-flag. To evaluate the test set from week 3 use the ````-week3````  flag jointly with the `````-test````` flag.
-
-To evaluate with Orb on any of the previous queries, use the ````-use_orb```` flag jointly with the other ones. For 
-example, to use Orb on the test set from week 3 run ````python retrieve_img_3.py -week3 -test -use_orb````.
-
-### SIFT and others maybe
+The code runs by default on this week's development query set. If you want to run the code on this week's query set use
+the ````-test```` flag. For example, run ````-python retrieve_img_3.py -test -use_surf```` to evaluate the test set with Surf. 
+ 
+ To run the code with week's 3 development query set use the flag ````-week3````. Finally, to 
+run the test set from the third week use the ````-test```` flag jointly with the ````-week3```` flag.
 
 ## Results
 
@@ -71,7 +72,7 @@ Time (in seconds) |5|12|12|12|12|\>14|
 
 ### Week 4
 
-These are the results obtained for the Week 4 queries:
+These are the results obtained with the methods used in the fourth week:
 
 Method | Surf| Orb | Sift  
 ---  | --- | --- | ---  |
