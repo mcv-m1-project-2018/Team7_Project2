@@ -76,11 +76,11 @@ These are the results obtained with the methods used in the fourth week:
 
 Method | Surf| Orb | Sift  
 ---  | --- | --- | ---  |
-Score Week 4| 0.67 | 0.93 | ? |
+Score Week 4| 0.67 | 0.93 | 0.84 |
 Score Week 4 Test | ? | ? | ? | 
-Score Week 3 | 0.81 | 0.98 | ? |
+Score Week 3 | 0.81 | 0.98 | 0.93 |
 Score Week 3 Test | 0.77 | 0.86 | ? |
-Time (in seconds) | ? | ? | ? |
+Time per query(in seconds) | 0.42 | 0.65 | 5 |
 
 
 
