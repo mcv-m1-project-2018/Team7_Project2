@@ -178,7 +178,7 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
 
         res.append([score for score, _ in scores])
 
-        if forTest:
+        if not forTest:
             print(ground_truth[q_name])
             print(eval)
 
@@ -190,7 +190,7 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
     with open("query.pkl", "wb") as f:
         pickle.dump(q, f)
 
-    if forTest:
+    if not forTest:
         # ------------------------------------- tuning
         print('\n\n--- tuning ---')
         best_th = None
