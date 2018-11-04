@@ -279,4 +279,9 @@ if __name__ == "__main__":
     elif args.use_sift:
         method_name = 'sift'
 
-    main(database_dir, query_folder, ground_truth, method_name)
+    if args.test:
+        forTest = True
+    else:
+        forTest = False
+
+    main(database_dir, query_folder, ground_truth, method_name, forTest)
