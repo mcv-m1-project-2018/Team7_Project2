@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as pat
 from skimage.filters import sobel
 import numpy as np
+import math
 
 """
 Example code for the segmentation of the paintings.
@@ -26,7 +27,7 @@ for q_im, q_name in data.query_imgs:
 
     # rescale the image, works better and uses less memory
     shape_max = max(q_im.shape)
-    if shape_max > 750:
+    if shape_max > 1000:
         ratio = 750 / shape_max
         q_im = cv2.resize(q_im, (0, 0), fx=ratio, fy=ratio)
 
@@ -35,8 +36,10 @@ for q_im, q_name in data.query_imgs:
     # edge detection, binarization, some morphology and contour extraction
     edge = sobel(gray)
     mean = edge.mean()
-    edge_binary = 1.0 * (edge > mean*3)
+    edge_binary = 1.0 * (edge > mean*4)
     kernel = np.ones((10, 10), np.uint8)
+    edge_binary = cv2.morphologyEx(np.uint8(edge_binary), cv2.MORPH_CLOSE, kernel)
+    kernel = np.ones((3, 3), np.uint8)
     edge_binary = cv2.morphologyEx(np.uint8(edge_binary), cv2.MORPH_CLOSE, kernel)
 
     _, contours, _ = cv2.findContours(np.uint8(edge_binary), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -100,18 +103,28 @@ for q_im, q_name in data.query_imgs:
     ax1.scatter(box[1][0], box[1][1])
     ax1.scatter(box[2][0], box[2][1])
     ax1.scatter(box[3][0], box[3][1])
-    # this is the corners of the bbox returned by minAreaRect. Notice how the points of the image change based on
-    # the tilting of the image. This is because opencv hates us and wants to make us scream in agony.
-    ax1.annotate("0", (box[0][0], box[0][1]))
-    ax1.annotate("1", (box[1][0], box[1][1]))
-    ax1.annotate("2", (box[2][0], box[2][1]))
-    ax1.annotate("3", (box[3][0], box[3][1]))
-    ax1.annotate("angle: " + "{0:.2f}".format(angle), (10, 50), color="red")
-    ax1.annotate("rect angle: " + "{0:.2f}".format(rect[2]), (10, 100), color="red")  #angle returned by minAreaRect
+    ax1.text(0.04, 0.90, "angle: " + "{0:.2f}".format(angle), transform=ax1.transAxes, fontsize=13, color="magenta",
+             bbox=dict(facecolor="gray", alpha=0.5, edgecolor='none'))
+    ax1.text(0.04, 0.80, "minAreaRect angle: " + "{0:.2f}".format(rect[2]), transform=ax1.transAxes, fontsize=13,
+             color="lime", bbox=dict(facecolor="gray", alpha=0.5, edgecolor='none'))
     ax1.add_patch(pat.Rectangle(upper_left_edge, w_rotated_bbox, h_rotated_bbox,  # rotated bbox
                                 linewidth=2, edgecolor='r', facecolor='none', angle=angle))
     ax1.add_patch(pat.Rectangle((x, y), w, h,
                                 linewidth=2, edgecolor='b', facecolor='none'))  # bbox without rotation
+    ax1.plot([box[0, 0], box[0, 0]+90],  # minAreaRect angle
+             [box[0, 1], box[0, 1]], color="lime", linewidth=2)
+    ax1.plot([box[0, 0], box[0, 0] + 90 * math.cos(math.radians(rect[2]))],
+             [box[0, 1], box[0, 1] + 90 * math.sin(math.radians(rect[2]))], color="lime", linewidth=2)
+    ax1.plot([upper_left_edge[0], upper_left_edge[0] + 90],  # angle
+             [upper_left_edge[1], upper_left_edge[1]], color="magenta", linewidth=2)
+    ax1.plot([upper_left_edge[0], upper_left_edge[0] + 90 * math.cos(math.radians(angle))],
+             [upper_left_edge[1], upper_left_edge[1] + 90 * math.sin(math.radians(angle))], color="magenta", linewidth=2)
+    # these are the corners of the bbox returned by minAreaRect. Notice how the points of the image change based on
+    # the tilting of the image. This is because opencv hates us and wants to make us scream in agony.
+    ax1.annotate("0", (box[0][0] - 10, box[0][1] - 10), fontsize=13)
+    ax1.annotate("1", (box[1][0] - 10, box[1][1] - 10), fontsize=13)
+    ax1.annotate("2", (box[2][0] - 10, box[2][1] - 10), fontsize=13)
+    ax1.annotate("3", (box[3][0] - 10, box[3][1] - 10), fontsize=13)
 
     ax1 = fig.add_subplot(2, 3, 2)
     ax1.imshow(edge, cmap='gray')
