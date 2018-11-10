@@ -60,7 +60,8 @@ for q_im, q_name in data.query_imgs:
     # can't know if it's tilted to the right or to the left. Don't worry, we can determine the angle of the rotation
     # by its value. Values close to 0 (more than -45 degrees) mean that the painting is tilted to the left, as the angle
     # between the lower side of the bbox and the horizontal reference line is smaller. Values closer to -90 (less than
-    # -45) mean that the painting is tilted to the right. We COULD determine the angle of the rotation wrong if the
+    # -45) mean that the painting is tilted to the right, as it is now calculated as the angle between the right side of
+    # the painting and the horizontal reference line. We COULD determine the angle of the rotation wrong if the
     # painting was tilted more than 45 degrees, but then it would be impossible to determine the right rotation as we
     # can't know when a painting is standing or sideways.
 
