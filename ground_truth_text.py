@@ -66,6 +66,7 @@ def get_text_gt():
 def analyze_gt(data, gt):
     aspect_ratios = []
     lengths = []
+    heights = []
     areas = []
     values = []
     saturations = []
@@ -96,6 +97,7 @@ def analyze_gt(data, gt):
         x2 = min(int(x2 * ratio), maxX-1)
         y2 = min(int(y2 * ratio), maxY-1)
         lengths.append(x2-x1)
+        heights.append(y2-y1)
         area = (x2-x1)*(y2-y1)
         areas.append(area)
 
@@ -147,6 +149,11 @@ def analyze_gt(data, gt):
     print("max length " + str(max(lengths)) + "    ("+str(FinalSize)+")")
     print("mean length " + str(np.mean(lengths)) + "    (" + str(FinalSize) + ")")
     print("std length " + str(np.std(lengths)) + "    (" + str(FinalSize) + ")")
+
+    print("min height " + str(min(heights)) + "    (" + str(FinalSize) + ")")
+    print("max height " + str(max(heights)) + "    (" + str(FinalSize) + ")")
+    print("mean height " + str(np.mean(heights)) + "    (" + str(FinalSize) + ")")
+    print("std height " + str(np.std(heights)) + "    (" + str(FinalSize) + ")")
 
     print("min area " + str(min(areas)) + "    (" + str(FinalSize) + ")")
     print("max area " + str(max(areas)) + "    (" + str(FinalSize) + ")")

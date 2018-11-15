@@ -5,12 +5,32 @@ import numpy as np
 from data_handler import Data
 import ground_truth_text
 
+def intersection_over_union(bbox1, bbox2):
+    #each bounding box should be given as (x1, y1, x2, y2). (x1, y1) the top left point, (x2, y2) the bottom right
+    #intersection bbox
+    x1 = max(bbox1[0], bbox2[0])
+    y1 = max(bbox1[1], bbox2[1])
+    x2 = min(bbox1[2], bbox2[2])
+    y2 = min(bbox1[3], bbox2[3])
+
+
+    intersection_area = max(0, x2 - x1 + 1) * max(0, y2 - y1 + 1)
+
+    area1 = (bbox1[2]-bbox1[0] + 1) * (bbox1[3]-bbox1[1] + 1)
+    area2 = (bbox2[2] - bbox2[0] + 1) * (bbox2[3] - bbox2[1] + 1)
+
+    union_area = area1 + area2 - intersection_area
+
+
+    return intersection_area/union_area
+
 def main():
 
     data = Data(database_dir= 'w5_BBDD_random', query_dir= 'w5_devel_random')
 
     gt = ground_truth_text.get_text_gt()
 
+    iou_list = []
     # loop over database_imgs without overloading memory
     for im, im_name in data.database_imgs:
 
@@ -116,7 +136,7 @@ def main():
         #for edge in hedges:
             #cv2.line(img=rgb_image, pt1=edge[0], pt2=edge[1], color=(0,255,0), thickness=1)
 
-        print(len(hedges))
+        #print(len(hedges))
 
         # vertical edges
         vedges = []
@@ -150,7 +170,7 @@ def main():
         #for edge in vedges:
             #cv2.line(img=rgb_image, pt1=edge[0], pt2=edge[1], color=(255, 0, 0), thickness=1)
 
-        print(len(vedges))
+        #print(len(vedges))
         ############# "Candidate Windows from edge vertices ####################
         candidate_points = []
         for edge in hedges:
@@ -159,8 +179,8 @@ def main():
         for edge in vedges:
             candidate_points.append(edge[0])
             candidate_points.append(edge[1])
-        print("len candidate points")
-        print(len(candidate_points))
+        #print("len candidate points")
+        #print(len(candidate_points))
 
         integral_image_sat = cv2.integral(sat_im)
         integral_image_val = cv2.integral(val_im)
@@ -171,34 +191,39 @@ def main():
 
         point1 = (int(x1gt*ratio), int(y1gt*ratio))
         point2 = (int(x2gt*ratio), int(y2gt*ratio))
-        print("--------------------------------------------")
+        #print("--------------------------------------------")
         length = abs(point1[0] - point2[0])
-        print("length " + str(length))
+        #print("length " + str(length))
+        passed = False
         if (length > 50 and length < 160):
             height = abs(point1[1] - point2[1])
-            print("height "+str(height))
+            #print("height "+str(height))
             if (height > 0):
                 aspect_ratio = length / abs(point1[1] - point2[1])
-                print("aspect_ratio"+str(aspect_ratio))
+                #print("aspect_ratio"+str(aspect_ratio))
                 if (aspect_ratio > 4 and aspect_ratio < 13):
                     area = length * height
-                    print("area "+str(area))
+                    #print("area "+str(area))
                     if (area > 400 and area < 4700):
 
                         x1 = min(point1[0], point2[0])
                         y1 = min(point1[1], point2[1])
                         x2 = max(point1[0], point2[0])
                         y2 = max(point1[1], point2[1])
+
+                        x2 = min(x2, im.shape[1] - 1)
+                        y2 = min(y2, im.shape[0] - 1)
+
                         sum_sat = integral_image_sat[y2 + 1, x2 + 1] + integral_image_sat[y1, x1] - \
                                   integral_image_sat[y2 + 1, x1] - integral_image_sat[y1, x2 + 1]
                         mean_sat = sum_sat / area
-                        print("mean sat "+str(mean_sat))
+                        #print("mean sat "+str(mean_sat))
                         if (mean_sat < 140):
 
                             sum_val = integral_image_val[y2 + 1, x2 + 1] + integral_image_val[y1, x1] - \
                                       integral_image_val[y2 + 1, x1] - integral_image_val[y1, x2 + 1]
                             mean_val = sum_val / area
-                            print("mean val " + str(mean_val))
+                            #print("mean val " + str(mean_val))
                             if (mean_val < 130):  # dark background -> white letters
                                 target_integral_image = integral_threshwhite_big
                             if (mean_val > 130):  # bright background -> dark letters
@@ -211,13 +236,15 @@ def main():
                                                     y1_big, x2_big + 1]
                             area_big = area / ratio / ratio
                             filling_letters = count_letters_big / area_big
-                            print("filling_letters " + str(filling_letters))
+                            #print("filling_letters " + str(filling_letters))
                             if (filling_letters > 0.02 and filling_letters < 0.35):
-                                print("TEST GT PASSED")
-                                cv2.rectangle(rgb_image, pt1=point1, pt2=point2, color=(0,255,0), thickness=2)
-
-
-
+                                passed = True
+        if(passed):
+            print("Test gt ok: " + im_name)
+        else:
+            print ("---------------")
+            print("TEST GT not PASSED!!!: "+im_name)
+        cv2.rectangle(rgb_image, pt1=point1, pt2=point2, color=(0, 255, 0), thickness=2)
 
         count = 0
         window_candidates = []
@@ -241,6 +268,10 @@ def main():
                                 y1 = min(point1[1], point2[1])
                                 x2 = max(point1[0], point2[0])
                                 y2 = max(point1[1], point2[1])
+
+                                x2 = min(x2, im.shape[1] - 1)
+                                y2 = min(y2, im.shape[0] - 1)
+
                                 sum_sat = integral_image_sat[y2 + 1, x2 + 1] + integral_image_sat[y1, x1] - \
                                           integral_image_sat[y2 + 1, x1] - integral_image_sat[y1, x2 + 1]
                                 mean_sat = sum_sat / area
@@ -310,9 +341,9 @@ def main():
 
                                         gradient_score = count_gradient_htop + count_gradient_hbot + count_gradient_vleft + count_gradient_right
 
-                                        print("-----------------------")
-                                        print(distance)
-                                        print(gradient_score)
+                                        #print("-----------------------")
+                                        #print(distance)
+                                        #print(gradient_score)
 
                                         window_candidates.append(((x1, y1, x2, y2), distance-3*gradient_score))
 
@@ -323,17 +354,38 @@ def main():
 
 
 
-        print("candidate windows")
-        print(count)
-        winning_window = min(window_candidates, key=lambda x: x[1])
-        print("WINNER")
-        print(winning_window)
-        p1 = winning_window[0][:2]
-        p2 = winning_window[0][2:]
-        print(p1)
-        print(p2)
+        #print("candidate windows")
+        #print(count)
+        if(len(window_candidates)==0):
+            print("Empty windows candidates!!!: "+im_name)
+            winning_window = (0,0,0,0)
+        else:
+            winning_window = min(window_candidates, key=lambda x: x[1])[0]
+        #print("WINNER")
+        #print(winning_window)
+
+        gt_window = (x1gt, y1gt, x2gt, y2gt)
+
+        #print("winning window", winning_window)
+        winning_window_big = ( int(winning_window[0]/ratio), int(winning_window[1]/ratio), int(winning_window[2]/ratio), int(winning_window[3]/ratio) )
+
+        #print("winning window", winning_window_big)
+        #print("gt window", gt_window)
+
+        iou = intersection_over_union(winning_window_big, gt_window)
+        print("iou: "+str(iou))
+        iou_list.append(iou)
+
+
+        point1 = (int(x1gt * ratio), int(y1gt * ratio))
+        point2 = (int(x2gt * ratio), int(y2gt * ratio))
+
+        p1 = winning_window[:2]
+        p2 = winning_window[2:]
+        #print(p1)
+        #print(p2)
         cv2.rectangle(rgb_image, pt1=p1, pt2=p2, color=(0, 0, 255), thickness=2)
-        print("-----------------------------")
+        #print("-----------------------------")
 
         """"
 
@@ -405,7 +457,7 @@ def main():
                 for i in range(1, im.shape[0]*ratio, 2):
                     for j in range(1, im.shape[1] * ratio, 2):
 
-        """
+
 
 
 
@@ -442,7 +494,7 @@ def main():
         plt.title("Mask")
         plt.imshow(mask, cmap='gray')
 
-        """plt.subplot(3, 4, 8)
+        plt.subplot(3, 4, 8)
         plt.title("Edges")
         plt.imshow(edges, cmap='gray')
 
@@ -453,8 +505,15 @@ def main():
         plt.subplot(3, 4, 10)
         plt.title("Corners Val")
         plt.imshow(val_corners, cmap='gray')
-        """
+
+
         plt.show()
+        """
+
+    print("------------------------------------------")
+    print("MEAN INTERSECTION OVER UNION")
+    print(iou_list)
+    print (np.mean(iou_list))
 
 
 
