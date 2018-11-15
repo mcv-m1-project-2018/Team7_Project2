@@ -9,7 +9,7 @@ def get_hash(image):
     :param image: image
     :return: DWT based hash
     """
-    return imagehash.whash(Image.fromarray(image), hash_size=16)
+    return imagehash.whash(Image.fromarray(image), hash_size=32)
 
 
 def compare_wavelet_hashing(q_hash, im_hash):
