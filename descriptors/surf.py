@@ -5,7 +5,7 @@ class Surf:
     """
     Class to compute surf features. Avoids creating cv2's surf object more than once.
     """
-    def __init__(self, hessian_threshold=350, matching_method='knn'):
+    def __init__(self, hessian_threshold=1000, matching_method='flann'):
         """
 
         :param hessian_threshold:
@@ -21,7 +21,7 @@ class Surf:
     def get_hessian_threshold(self):
         return self.surf_obj.getHessianThreshold()
 
-    def detectAndCompute(self, img, adapt_threshold=False, step=1000, max_features=1000):
+    def detectAndCompute(self, img, adapt_threshold=False, step=1000, max_features=2000):
         """
         Computes features, adapts the hessian threshold so the images have less than max_features features. If there
         are too many descriptors the KNN matcher takes too long. The keypoints are not used and it's not easy to
@@ -45,7 +45,7 @@ class Surf:
             self.set_hessian_threshold(old)
         return descriptors
 
-    def match_features(self, descriptors1, descriptors2, threshold=0.75):
+    def match_features(self, descriptors1, descriptors2, threshold=0.7):
         """
         Matches features with several methods. Brute force KNN seems to be the fastest one.
         :param descriptors1:
@@ -64,7 +64,7 @@ class Surf:
 
             matches_good = []
             for m, n in matches:
-                if m.distance < threshold * n.distance:
+                if m.distance < threshold * n.distance and m.distance< 50:
                     matches_good.append([m])
 
         if self.matching_method == 'bf':
@@ -80,7 +80,7 @@ class Surf:
 
             matches_good = []
             for m, n in matches:
-                if m.distance < threshold * n.distance:
+                if m.distance < threshold * n.distance and m.distance<50:
                     matches_good.append([m])
 
         return matches_good

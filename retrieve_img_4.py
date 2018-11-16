@@ -138,15 +138,15 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
     if method_name == 'orb':
         method = Orb()
         #min_features = 25
-        th = 0.0205078125
+        th = 0.033203125
     elif method_name == 'surf':
         method = Surf()
         #min_features = 100
-        th = 0.1669921875
+        th = 0.0263671875
     elif method_name == 'sift':
         method = Sift()
         #min_features = 70
-        th = 0.155
+        th = 0.0341796875
 
 
     data = Data(database_dir=database_dir, query_dir=query_folder)
@@ -179,12 +179,15 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest = False)
         res.append([score for score, _ in scores])
 
         if not forTest:
-            print(ground_truth[q_name])
+            print('Ground truth:', ground_truth[q_name])
+            print('best match:  ', results_hist[-1][0])
             print(eval)
+
 
     global_eval = np.mean(eval_array)
     print("----------------\nEvaluation: " + str(global_eval))
     q = [name for _, name in data.query_imgs]
+    
     with open("result.pkl", "wb") as f:
         pickle.dump(res, f)
     with open("query.pkl", "wb") as f:

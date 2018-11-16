@@ -23,7 +23,7 @@ class Orb:
 
         return descriptors
 
-    def match_features(self, descriptors1, descriptors2, threshold=0.75):
+    def match_features(self, descriptors1, descriptors2, threshold=0.7):
         """
         Matches features with several methods. Brute force KNN seems to be the fastest one.
         :param descriptors1:
@@ -34,7 +34,7 @@ class Orb:
         matches_good = []
 
         if self.matching_method == 'knn':
-            bf = cv2.BFMatcher()
+            bf = cv2.BFMatcher(cv2.NORM_HAMMING)
             matches = bf.knnMatch(descriptors1, descriptors2, k=2)
 
             if len(matches) == 0:
@@ -42,12 +42,12 @@ class Orb:
 
             matches_good = []
             for m, n in matches:
-                if m.distance < threshold * n.distance:
+                if m.distance < threshold * n.distance and m.distance < 50: #100 95% # 50 better 95.8%
                     matches_good.append([m])
 
         if self.matching_method == 'bf':
-            bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
-            matches_good = bf.match(descriptors1, descriptors2)
+            bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+            matches = bf.match(descriptors1, descriptors2)
 
         if self.matching_method == 'flann':
             FLANN_INDEX_KDTREE = 1

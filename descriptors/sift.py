@@ -26,7 +26,7 @@ class Sift:
         
         return keypoints, descriptors
 
-    def match_features(self, descriptors1, descriptors2, threshold=0.77):
+    def match_features(self, descriptors1, descriptors2, threshold=0.7):
         """
         Matches features with several methods. Brute force KNN seems to be the fastest one.
         :param descriptors1:
@@ -62,7 +62,7 @@ class Sift:
 
             matches_good = []
             for m, n in matches:
-                if m.distance < threshold * n.distance:
+                if m.distance < threshold * n.distance and m.distance<100: #100 & 125 gave same result(best), 50bad,75bad 150bad,
                     matches_good.append([m])
 
         return matches_good
