@@ -6,6 +6,7 @@ from data_handler import Data
 import ground_truth_text
 from math import sqrt
 
+
 def black_filter(img):
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 	sensitivity = 50
@@ -13,6 +14,8 @@ def black_filter(img):
 	upper_black = np.array([255,255,sensitivity])
 	mask = cv2.inRange(hsv, lower_black, upper_black)
 	cv2.imshow('black',mask)
+	
+	return mask
 
 def white_filter(img):
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -22,19 +25,25 @@ def white_filter(img):
 	mask = cv2.inRange(hsv, lower_white, upper_white)
 	cv2.imshow('white',mask)
 
+	return mask
+
+
 def line_detection(im):
 
 	lines_np = []
 	gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-	kernel_size = 11
+	kernel_size = 3
+	gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
+	gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
+	gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
 	gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
 	gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
 
 
-	edges_im = cv2.Canny(gray,10,20) #50-100
+	edges_im = cv2.Canny(gray,10,50) #50-100
 	lines_im = edges_im.copy() * 0
-	lines = cv2.HoughLinesP(edges_im,rho = 1,theta = 1*np.pi/180,threshold = 10,\
-							minLineLength = 80,maxLineGap = 20)  #threshold = 100,minLength = 50,maxLineGap = 50
+	lines = cv2.HoughLinesP(edges_im,rho = 1,theta = 1*np.pi/180,threshold = 20,\
+							minLineLength = 50,maxLineGap = 10)  #threshold = 100,minLength = 50,maxLineGap = 50
 
 	if type(lines) == type(None):
 		lines = []
@@ -64,15 +73,15 @@ def main():
 
 	# loop over database_imgs without overloading memory
 	for im, im_name in data.database_imgs:
-		#line_detection(im)
-		white_filter(im)
-		black_filter(im)
-		cv2.imshow('input',im)
-
-		cv2.waitKey()
-
-
-
+		x1gt, y1gt, x2gt, y2gt = gt[im_name]
+		#cv2.rectangle(im,(x1gt,y1gt),(x2gt,y2gt),(0,255,0),2)
+		if 1:
+			line_detection(im)
+			w_msk = white_filter(im)
+			b_msk = black_filter(im)
+			cv2.imshow('input',im)
+			cv2.imshow('com',com)
+			cv2.waitKey()
 
 if __name__ == "__main__":
 	main()
