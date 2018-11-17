@@ -174,14 +174,20 @@ def main():
 			else:
 				text_box = b_box
 			x,y,w,h = text_box
+			#---------------------------------
+			y = int(y-0.2*h)
+			h = int(1.7*h)
+			
+			x = int(x - 0.2*h)
+			w = int(w + 0.4*h)
+			text_box = [x,y,w,h]
+			#---------------------------------
+
 			cv2.rectangle(im,(x,y),(x+w,y+h),(0,255,0),2)
 
 			rescaled_text_box = [int(i/ratio) for i in text_box]
 			x,y,w,h = rescaled_text_box
-			#---------------------------------
 			rescaled_text_box = [x,y,x+w,y+h]
-
-			#---------------------------------
 
 			print(rescaled_text_box)
 			print(gt[im_name])
