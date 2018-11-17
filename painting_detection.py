@@ -152,7 +152,7 @@ def get_painting_rotated(image, show=False, save_fig=False):
 #
 #
 # for q_im, q_name in data.query_imgs:
-#     get_painting_rotated(q_im, show=False)
+#     get_painting_rotated(q_im, show=True)
 #
 #
 # exit(0)

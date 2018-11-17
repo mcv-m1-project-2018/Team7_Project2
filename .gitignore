@@ -8,10 +8,12 @@ features/
 query_test/
 w5_devel_random/
 w5_BBDD_random/
-test/
 
 #Other stuff
 .idea/
 venv/
 __pycache__/
 *.pyc
+test/
+query.pkl
+result.pkl
