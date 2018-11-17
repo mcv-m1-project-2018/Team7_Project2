@@ -31,12 +31,25 @@ def divide_measure_colorfulness(im):
 		x,y,w,h = slice
 		crop = np.copy(im[x:x+w,y:y+h])
 		c = image_colorfulness(crop) * 10
+		
+		if c>50:
+			c=255
+		else:
+			c = 0
 		print(c)
 		for i in range(x,x+w):
 			for j in range(y,y+h):
 				msk[i,j] = c
 
 	cv2.imshow('msk',msk)
+	msk_color = cv2.applyColorMap(msk, cv2.COLORMAP_AUTUMN)
+	cv2.imshow('msk_color', msk_color)
+	alpha = 0.5
+	beta  = (1.0 - alpha)
+	dst   = cv2.addWeighted(im, alpha, msk_color, beta, 0.0)
+	cv2.imshow('dst', dst)
+
+
 
 
 def main():
@@ -46,12 +59,12 @@ def main():
 	# loop over database_imgs without overloading memory
 	#for im, im_name in data.database_imgs:
 	for im, im_name in data.query_imgs:
-		if im_name == 'ima_000023':
-			x1gt, y1gt, x2gt, y2gt = gt[im_name]
-			cv2.imshow('im',im)
-			divide_measure_colorfulness(im)
-			print(image_colorfulness(im))
-			cv2.waitKey()
+		x1gt, y1gt, x2gt, y2gt = gt[im_name]
+		cv2.imshow('im',im)
+		divide_measure_colorfulness(im)
+		print(image_colorfulness(im))
+
+		cv2.waitKey()
 
 
 if __name__ == "__main__":
