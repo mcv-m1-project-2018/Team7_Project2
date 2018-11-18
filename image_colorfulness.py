@@ -9,7 +9,6 @@ from data_handler import Data
 
 import ground_truth_text
 
-
 def image_colorfulness(image):
 	(B, G, R) = cv2.split(image.astype("float"))
 	rg = np.absolute(R - G)
@@ -30,9 +29,9 @@ def divide_measure_colorfulness(im):
 	for slice in slices:
 		x,y,w,h = slice
 		crop = np.copy(im[x:x+w,y:y+h])
-		c = image_colorfulness(crop) * 10
-		
-		if c>50:
+		c = image_colorfulness(crop) * 5
+
+		if c>200:
 			c=255
 		else:
 			c = 0
@@ -41,13 +40,14 @@ def divide_measure_colorfulness(im):
 			for j in range(y,y+h):
 				msk[i,j] = c
 
-	cv2.imshow('msk',msk)
+	#cv2.imshow('msk',msk)
 	msk_color = cv2.applyColorMap(msk, cv2.COLORMAP_AUTUMN)
-	cv2.imshow('msk_color', msk_color)
+	#cv2.imshow('msk_color', msk_color)
 	alpha = 0.5
 	beta  = (1.0 - alpha)
 	dst   = cv2.addWeighted(im, alpha, msk_color, beta, 0.0)
-	cv2.imshow('dst', dst)
+	#cv2.imshow('dst', dst)
+	return msk
 
 
 
