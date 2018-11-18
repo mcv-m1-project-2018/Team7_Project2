@@ -37,6 +37,32 @@ def distance_rectangles(r1, r2):
     else:             # rectangles intersect
         return 0.
 
+def bboxes_from_mask(threshold_image):
+    im2, contours, hierarchy = cv2.findContours(threshold_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    bboxes = []
+    for cont in contours:
+        rectangle = cv2.boundingRect(cont)
+        x, y, w, h = rectangle
+        if(h>0.01*threshold_image.shape[0] and h<0.15*threshold_image.shape[0]): #we are interested in letters mostly
+            bboxes.append((x, y, x+w, y+h))
+    return bboxes
+
+def bboxes_black(hsv_image):
+    threshblack = cv2.inRange(hsv_image, (0, 0, 0), (180, 50, 50))
+    size = max(hsv_image.shape)
+    kernel_size = int(size / 100)
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    closing = cv2.morphologyEx(threshblack, cv2.MORPH_CLOSE, kernel)
+    return bboxes_from_mask(closing)
+
+
+def bboxes_white(hsv_image):
+    threshwhite = cv2.inRange(hsv_image, (0, 0, 200), (180, 50, 255))
+    size = max(hsv_image.shape)
+    kernel_size = int(size / 100)
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    closing = cv2.morphologyEx(threshwhite, cv2.MORPH_CLOSE, kernel)
+    return bboxes_from_mask(closing)
 
 def main():
 
@@ -51,42 +77,28 @@ def main():
 
         x1, y1, x2, y2 = gt[im_name]
 
-        ################### Get white and black regions #################
-        threshblack = cv2.inRange(hsv_image, (0,0,0), (180, 50, 50))
-        threshwhite = cv2.inRange(hsv_image, (0, 0, 200), (180, 50, 255))
+        bboxesblack = bboxes_black(hsv_image)
+        bboxeswhite = bboxes_white(hsv_image)
 
+        image_white = cv2.inRange(hsv_image, (0, 0, 200), (180, 50, 255))
+        image_black = cv2.inRange(hsv_image, (0, 0, 0), (180, 50, 50))
 
-        integral_threshblack = cv2.integral(threshblack)
-        integral_threshwhite = cv2.integral(threshwhite)
-
-        print(im.shape)
-        size = max(im.shape)
-        kernel_size = int(size/100)
-
-        ################### Apply Morphology #################
+        size = max(hsv_image.shape)
+        kernel_size = int(size / 100)
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
 
-        opening = cv2.morphologyEx(threshblack, cv2.MORPH_OPEN, kernel)
-        closing = cv2.morphologyEx(threshblack, cv2.MORPH_CLOSE, kernel)
-        closing_opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel)
+        image_black = cv2.morphologyEx(image_black, cv2.MORPH_CLOSE, kernel)
+        image_white = cv2.morphologyEx(image_white, cv2.MORPH_CLOSE, kernel)
 
-        closing_bboxs = closing.copy()
-        bboxs_unmerged = closing.copy()
+        for bbox in bboxesblack:
+            cv2.rectangle(image_black, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (150), 10)
 
-        ################### Get Contours and Bboxs #################
-        im2, contours, hierarchy = cv2.findContours(threshblack.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        bboxes = []
-        for cont in contours:
-            rectangle = cv2.boundingRect(cont)
-            x, y, w, h = rectangle
-            #cv2.rectangle(closing_bboxs, (x, y), (x+w, y+h), (150), 10)
-            if(h>0.01*im.shape[0] and h<0.15*im.shape[0]):
-                bboxes.append((x, y, x+w, y+h))
-                cv2.rectangle(bboxs_unmerged, (x, y), (x+w, y+h), (150), 5)
+        for bbox in bboxeswhite:
+            cv2.rectangle(image_white, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (150), 10)
 
 
         ################### Merge Bboxs (letters) #################
-
+        """"
         parameter_letters = im.shape[1]/80
 
         finished = False
@@ -113,7 +125,6 @@ def main():
             bboxes = newboxes
             if(len(merged)== 0):
                 finished = True
-
         for bbox in bboxes:
             x1, y1, x2, y2 = bbox
             cv2.rectangle(closing_bboxs, (x1, y1), (x2, y2), (150), 10)
@@ -137,33 +148,25 @@ def main():
         if (mean_val > 120):  # bright background -> dark letters
             target_integral_image = integral_threshblack
             print("White background")
-
-            plt.subplot(231)
-            plt.title("Image")
-            plt.imshow(im)
-            plt.subplot(232)
-            plt.title("Black Segmentation")
-            plt.imshow(threshblack, cmap='gray')
-            plt.subplot(233)
-            plt.title("Bboxes Unmerged")
-            plt.imshow(bboxs_unmerged, cmap='gray')
-            plt.subplot(234)
-            plt.title("Closing Black")
-            plt.imshow(closing, cmap='gray')
-            plt.subplot(235)
-            plt.title("Bboxes")
-            plt.imshow(closing_bboxs, cmap='gray')
-            plt.subplot(236)
-            plt.title("im2")
-            plt.imshow(im2)
-
-            plt.show()
+        """
+        plt.subplot(131)
+        plt.title("Image")
+        plt.imshow(im)
+        plt.subplot(132)
+        plt.title("Black boxes")
+        plt.imshow(image_black, cmap='gray')
+        plt.subplot(133)
+        plt.title("White Boxes")
+        plt.imshow(image_white, cmap='gray')
 
 
-        count_letters = target_integral_image[y2 + 1, x2 + 1] + target_integral_image[y1, x1] - \
-                            target_integral_image[y2 + 1, x1] - target_integral_image[y1, x2 + 1]
-        filling_letter = count_letters / area
-        print("Filling letter:" + str(filling_letter))
+        plt.show()
+
+
+        #count_letters = target_integral_image[y2 + 1, x2 + 1] + target_integral_image[y1, x1] - \
+        #                    target_integral_image[y2 + 1, x1] - target_integral_image[y1, x2 + 1]
+        #filling_letter = count_letters / area
+        #print("Filling letter:" + str(filling_letter))
 
 
 

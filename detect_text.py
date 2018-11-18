@@ -4,6 +4,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from data_handler import Data
 import ground_truth_text
+import detect_letters
+
+def intersection(bbox1, bbox2):
+    x1 = max(bbox1[0], bbox2[0])
+    y1 = max(bbox1[1], bbox2[1])
+    x2 = min(bbox1[2], bbox2[2])
+    y2 = min(bbox1[3], bbox2[3])
+
+    return max(0, x2 - x1 + 1) * max(0, y2 - y1 + 1)
+
 
 def intersection_over_union(bbox1, bbox2):
     #each bounding box should be given as (x1, y1, x2, y2). (x1, y1) the top left point, (x2, y2) the bottom right
@@ -30,6 +40,20 @@ def main():
 
     gt = ground_truth_text.get_text_gt()
 
+    #### parameters obtained analyzing ground truth ###################
+    mean_aspect_ratio = 7.996836472972114
+    std_aspect_ratio = 1.8974561127167842
+    mean_length = 125.89268292682927
+    std_length = 29.238100687737802
+    mean_area = 2080.360975609756
+    std_area = 794.6253398125554
+    mean_filling_ratio = 0.13717846010306994
+    std_fillin_ratio = 0.07545651641355072
+    mean_saturation = 37.55115543136576
+    std_saturation = 28.178800884826995
+    mean_centered_distance = 0.0069118142084640425
+    std_centered_distance = 0.002423878582904023
+
     iou_list = []
     # loop over database_imgs without overloading memory
     for im, im_name in data.database_imgs:
@@ -41,17 +65,30 @@ def main():
         ratio = FinalSize / shape_max
         hsv_image_big = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
 
-        threshblack_big = cv2.inRange(hsv_image_big, (0, 0, 0), (180, 50, 50))
-        threshwhite_big = cv2.inRange(hsv_image_big, (0, 0, 200), (180, 50, 255))
+        image_white = cv2.inRange(hsv_image_big, (0, 0, 200), (180, 50, 255)) / 255
+        image_black = cv2.inRange(hsv_image_big, (0, 0, 0), (180, 50, 50)) / 255
 
-        integral_threshblack_big = cv2.integral(threshblack_big)/255
-        integral_threshwhite_big = cv2.integral(threshwhite_big)/255
+        size = max(hsv_image_big.shape)
+        kernel_size = int(size / 100)
+        kernel = np.ones((kernel_size, kernel_size), np.uint8)
+
+        image_black = cv2.morphologyEx(image_black, cv2.MORPH_CLOSE, kernel)
+        image_white = cv2.morphologyEx(image_white, cv2.MORPH_CLOSE, kernel)
+
+        image_blackwhite = cv2.bitwise_or(image_black, image_white)
+
+        integral_threshblack_big = cv2.integral(image_black)
+        integral_threshwhite_big = cv2.integral(image_white)
+        integral_blackwhite_big = cv2.integral(image_blackwhite)
 
         im = cv2.resize(im, (0, 0), fx=ratio, fy=ratio)
 
         hsv_image = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
         rgb_image = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         hue_im, sat_im, val_im = hsv_image[:,:,0], hsv_image[:, :, 1], hsv_image[:, :, 2]
+
+        bboxes_white = detect_letters.bboxes_white(hsv_image_big)
+        bboxes_black = detect_letters.bboxes_black(hsv_image_big)
 
         ################ Smoothing #####################################################
 
@@ -133,8 +170,8 @@ def main():
                 hedges.append((edge_start, (x, y)))
             edge_state = -1
 
-        #for edge in hedges:
-            #cv2.line(img=rgb_image, pt1=edge[0], pt2=edge[1], color=(0,255,0), thickness=1)
+        for edge in hedges:
+            cv2.line(img=rgb_image, pt1=edge[0], pt2=edge[1], color=(0,255,0), thickness=1)
 
         #print(len(hedges))
 
@@ -167,8 +204,8 @@ def main():
                 vedges.append((edge_start, (x, y)))
             edge_state = -1
 
-        #for edge in vedges:
-            #cv2.line(img=rgb_image, pt1=edge[0], pt2=edge[1], color=(255, 0, 0), thickness=1)
+        for edge in vedges:
+            cv2.line(img=rgb_image, pt1=edge[0], pt2=edge[1], color=(255, 0, 0), thickness=1)
 
         #print(len(vedges))
         ############# "Candidate Windows from edge vertices ####################
@@ -187,24 +224,24 @@ def main():
 
         ################ GT test ################################################
 
-        x1gt, y1gt, x2gt, y2gt = gt[im_name]
+        x1_big, y1_big, x2_big, y2_big = gt[im_name]
 
-        point1 = (int(x1gt*ratio), int(y1gt*ratio))
-        point2 = (int(x2gt*ratio), int(y2gt*ratio))
-        #print("--------------------------------------------")
-        length = abs(point1[0] - point2[0])
-        #print("length " + str(length))
+        point1 = (int(x1_big * ratio), int(y1_big * ratio))
+        point2 = (int(x2_big * ratio), int(y2_big * ratio))
+
         passed = False
-        if (length > 50 and length < 160):
+
+        length = abs(point1[0] - point2[0])
+        if (length > 40 and length < 170):
+
             height = abs(point1[1] - point2[1])
-            #print("height "+str(height))
             if (height > 0):
-                aspect_ratio = length / abs(point1[1] - point2[1])
-                #print("aspect_ratio"+str(aspect_ratio))
-                if (aspect_ratio > 4 and aspect_ratio < 13):
+
+                aspect_ratio = length / height
+                if (aspect_ratio > 3 and aspect_ratio < 14):
+
                     area = length * height
-                    #print("area "+str(area))
-                    if (area > 400 and area < 4700):
+                    if (area > 400 and area < 5000):
 
                         x1 = min(point1[0], point2[0])
                         y1 = min(point1[1], point2[1])
@@ -217,52 +254,183 @@ def main():
                         sum_sat = integral_image_sat[y2 + 1, x2 + 1] + integral_image_sat[y1, x1] - \
                                   integral_image_sat[y2 + 1, x1] - integral_image_sat[y1, x2 + 1]
                         mean_sat = sum_sat / area
-                        #print("mean sat "+str(mean_sat))
-                        if (mean_sat < 140):
 
-                            sum_val = integral_image_val[y2 + 1, x2 + 1] + integral_image_val[y1, x1] - \
-                                      integral_image_val[y2 + 1, x1] - integral_image_val[y1, x2 + 1]
-                            mean_val = sum_val / area
-                            #print("mean val " + str(mean_val))
-                            if (mean_val < 130):  # dark background -> white letters
-                                target_integral_image = integral_threshwhite_big
-                            if (mean_val > 130):  # bright background -> dark letters
-                                target_integral_image = integral_threshblack_big
-                            x1_big, y1_big, x2_big, y2_big = int(x1 / ratio), int(y1 / ratio), int(x2 / ratio), int(
-                                y2 / ratio)
-                            count_letters_big = target_integral_image[y2_big + 1, x2_big + 1] + target_integral_image[
-                                y1_big, x1_big] - \
-                                                target_integral_image[y2_big + 1, x1_big] - target_integral_image[
-                                                    y1_big, x2_big + 1]
-                            area_big = area / ratio / ratio
-                            filling_letters = count_letters_big / area_big
-                            #print("filling_letters " + str(filling_letters))
-                            if (filling_letters > 0.02 and filling_letters < 0.35):
-                                passed = True
-        if(passed):
+                        if (mean_sat < 150):
+
+                            x1_big, y1_big, x2_big, y2_big = int(x1 / ratio), int(y1 / ratio), int(
+                                x2 / ratio), int(y2 / ratio)
+
+                            centered_distance = abs(x1_big - (hsv_image_big.shape[1] - x2_big)) / hsv_image_big.shape[1]
+
+                            if (centered_distance < 0.2):
+
+                                sum_val = integral_image_val[y2 + 1, x2 + 1] + integral_image_val[y1, x1] - \
+                                          integral_image_val[y2 + 1, x1] - integral_image_val[y1, x2 + 1]
+                                mean_val = sum_val / area
+
+                                if (mean_val < 120):  # dark background -> white letters
+                                    target_integral_image = integral_threshwhite_big
+                                    is_dark_bg = True
+                                else:
+                                    is_dark_bg = False
+                                if (mean_val > 140):  # bright background -> dark letters
+                                    target_integral_image = integral_threshblack_big
+                                    is_bright_bg = True
+                                else:
+                                    is_bright_bg = False
+                                if (not (is_dark_bg or is_bright_bg)):
+                                    target_integral_image = integral_blackwhite_big
+
+
+                                count_letters_big = target_integral_image[y2_big + 1, x2_big + 1] + \
+                                                    target_integral_image[y1_big, x1_big] - \
+                                                    target_integral_image[y2_big + 1, x1_big] - \
+                                                    target_integral_image[y1_big, x2_big + 1]
+                                area_big = area / ratio / ratio
+                                filling_letters = count_letters_big / area_big
+
+                                if (filling_letters > 0.02 and filling_letters < 0.4):
+                                    passed = True
+
+                                    #################### SCORE WINDOWS AND RETRIEVE BEST ##########################
+
+                                    distance = abs(aspect_ratio - mean_aspect_ratio) / std_aspect_ratio + \
+                                               abs(length - mean_length) / std_length + \
+                                               abs(area - mean_area) / std_area + \
+                                               abs(filling_letters - mean_filling_ratio) / std_fillin_ratio + \
+                                               abs(mean_sat - mean_saturation) / std_saturation
+
+                                    x2 = min(x2, im.shape[1] - 2)
+                                    y2 = min(y2, im.shape[0] - 2)
+                                    x1 = max(1, x1)
+                                    y1 = max(1, y1)
+
+                                    count_gradient_htop = (integral_mix_sobely[y1 + 2, x2 + 1] + \
+                                                           integral_mix_sobely[y1 - 1, x1] - \
+                                                           integral_mix_sobely[y1 - 1, x2 + 1] - \
+                                                           integral_mix_sobely[y1 + 2, x1]) / ((x2 - x1) * 3)
+
+                                    count_gradient_hbot = (integral_mix_sobely[y2 + 2, x2 + 1] + \
+                                                           integral_mix_sobely[y2 - 1, x1] - \
+                                                           integral_mix_sobely[y2 - 1, x2 + 1] - \
+                                                           integral_mix_sobely[y2 + 2, x1]) / ((x2 - x1) * 3)
+
+                                    count_gradient_vleft = (integral_mix_sobelx[y2 + 1, x1 + 2] + \
+                                                            integral_mix_sobelx[y1, x1 - 1] - \
+                                                            integral_mix_sobelx[y1, x1 + 2] - \
+                                                            integral_mix_sobelx[y2 + 1, x1 - 1]) / ((y2 - y1) * 3)
+
+                                    count_gradient_right = (integral_mix_sobelx[y2 + 1, x2 + 2] + \
+                                                            integral_mix_sobelx[y1, x2 - 1] - \
+                                                            integral_mix_sobelx[y1, x2 + 2] - \
+                                                            integral_mix_sobelx[y2 + 1, x2 - 1]) / ((y2 - y1) * 3)
+
+                                    gradient_score = count_gradient_htop + count_gradient_hbot + count_gradient_vleft + count_gradient_right
+
+                                    if (is_dark_bg):
+                                        bboxes = bboxes_white
+                                    elif (is_bright_bg):
+                                        bboxes = bboxes_black
+                                    else:
+                                        bboxes = bboxes_white + bboxes_black
+
+                                    box_cuts = 0
+                                    intersections = 0
+                                    for bbox in bboxes:
+                                        intersect = intersection(bbox, (x1_big, y1_big, x2_big, y2_big))
+                                        area_bbox = (bbox[2] - bbox[0] + 1) * (bbox[3] - bbox[1] + 1)
+                                        cut = min(intersect, area_bbox - intersect)
+                                        box_cuts += cut
+                                        intersections += intersect
+
+                                    intersect_score = intersections / area_big
+                                    box_cuts = box_cuts / area_big
+
+                                    gt_dict_score = {}
+                                    gt_dict_score["gradient_score"] = gradient_score
+                                    gt_dict_score["box_cuts"] = box_cuts
+                                    gt_dict_score["dist_aspect_ratio"] = abs(aspect_ratio - mean_aspect_ratio) / std_aspect_ratio
+                                    gt_dict_score["dist_length"] = abs(length - mean_length) / std_length
+                                    gt_dict_score["area"] = abs(area - mean_area) / std_area
+                                    gt_dict_score["filling_letters"] = abs(filling_letters - mean_filling_ratio) / std_fillin_ratio
+                                    gt_dict_score["saturation"] = abs(mean_sat - mean_saturation) / std_saturation
+                                    gt_dict_score["intersect score"] = intersect_score
+
+                                    gt_score = distance/4 - gradient_score + 10*box_cuts - 5*intersect_score
+
+        if(passed and (intersect_score>0)):
             print("Test gt ok: " + im_name)
         else:
             print ("---------------")
             print("TEST GT not PASSED!!!: "+im_name)
+            print("intersect_score", intersect_score)
+            print("length", length)
+            print("aspect_ratio", aspect_ratio)
+            print("area", area)
+            print("mean_sat", mean_sat)
+            print("centered", centered_distance)
+            print("filling ratio", filling_letters)
+            print("is_dark", is_dark_bg)
+            print("is_bright", is_bright_bg)
+            print(mean_val)
+            print("... Bboxes")
+            print((x1_big, y1_big, x2_big, y2_big))
+            print(bboxes)
+            for bbox in bboxes:
+                cv2.rectangle(image_black, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (1), 10)
+                cv2.rectangle(image_white, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (1), 10)
+            plt.subplot(331)
+            plt.title("Image")
+            plt.imshow(rgb_image)
+            plt.subplot(332)
+            plt.title("Saturation")
+            plt.imshow(sat_im, cmap='gray')
+            plt.subplot(333)
+            plt.title("Value")
+            plt.imshow(val_im, cmap='gray')
+
+            plt.subplot(3, 3, 7)
+            plt.title("Threshold_Black")
+            plt.imshow(image_black, cmap='gray')
+
+            plt.subplot(3, 3, 8)
+            plt.title("Threshold_White")
+            plt.imshow(image_white, cmap='gray')
+
+            plt.subplot(3, 3, 5)
+            plt.title("Saturation Gradient")
+            plt.imshow(sat_sobel, cmap='gray')
+
+            plt.subplot(3, 3, 6)
+            plt.title("Value Gradient")
+            plt.imshow(val_sobel, cmap='gray')
+
+            plt.subplot(3, 3, 4)
+            plt.title("Mask")
+            plt.imshow(mask, cmap='gray')
+
+            plt.show()
+
         cv2.rectangle(rgb_image, pt1=point1, pt2=point2, color=(0, 255, 0), thickness=2)
 
         count = 0
         window_candidates = []
+        window_candidates
         for point1 in candidate_points:
             for point2 in candidate_points:
 
                 ######################################## FILTER WINDOWS ###############################################
                 length = abs(point1[0]-point2[0])
-                if(length >50 and length < 160):
+                if(length >40 and length < 170):
 
                     height = abs(point1[1] - point2[1])
                     if(height > 0):
 
-                        aspect_ratio = length / abs(point1[1] - point2[1])
-                        if (aspect_ratio>4 and aspect_ratio<13):
+                        aspect_ratio = length / height
+                        if (aspect_ratio>3 and aspect_ratio<14):
 
                             area = length*height
-                            if(area > 400 and area < 4700):
+                            if(area > 400 and area < 5000):
 
                                 x1 = min(point1[0], point2[0])
                                 y1 = min(point1[1], point2[1])
@@ -272,86 +440,116 @@ def main():
                                 x2 = min(x2, im.shape[1] - 1)
                                 y2 = min(y2, im.shape[0] - 1)
 
+                                x1_big, y1_big, x2_big, y2_big = int(x1 / ratio), int(y1 / ratio), int(
+                                    x2 / ratio), int(y2 / ratio)
+
                                 sum_sat = integral_image_sat[y2 + 1, x2 + 1] + integral_image_sat[y1, x1] - \
                                           integral_image_sat[y2 + 1, x1] - integral_image_sat[y1, x2 + 1]
                                 mean_sat = sum_sat / area
 
-                                if(mean_sat < 140):
+                                if(mean_sat < 150):
 
-                                    sum_val = integral_image_val[y2 + 1, x2 + 1] + integral_image_val[y1, x1] - \
-                                              integral_image_val[y2 + 1, x1] - integral_image_val[y1, x2 + 1]
-                                    mean_val = sum_val / area
-                                    if (mean_val < 130): #dark background -> white letters
-                                        target_integral_image = integral_threshwhite_big
-                                    if (mean_val > 130): #bright background -> dark letters
-                                        target_integral_image = integral_threshblack_big
-                                    x1_big, y1_big, x2_big, y2_big = int(x1/ratio), int(y1/ratio), int(x2/ratio), int(y2/ratio)
-                                    count_letters_big = target_integral_image[y2_big + 1, x2_big + 1] + target_integral_image[y1_big, x1_big] - \
-                                                          target_integral_image[y2_big + 1, x1_big] - target_integral_image[y1_big, x2_big + 1]
-                                    area_big = area/ratio/ratio
-                                    filling_letters = count_letters_big/area_big
-                                    if(filling_letters > 0.05 and filling_letters < 0.35):
-                                        count+=1
-                                        #cv2.rectangle(rgb_image, pt1=point1, pt2=point2, color=(0,0,255), thickness=1)
+                                    centered_distance = abs(x1_big - (hsv_image_big.shape[1] - x2_big)) / hsv_image_big.shape[1]
 
-                                        #################### SCORE WINDOWS AND RETRIEVE BEST ##########################
+                                    if(centered_distance < 0.2):
 
-                                        #### parameters obtained analyzing ground truth ###################
-                                        mean_aspect_ratio = 7.996836472972114
-                                        std_aspect_ratio = 1.8974561127167842
-                                        mean_length = 125.89268292682927
-                                        std_length = 29.238100687737802
-                                        mean_area = 2080.360975609756
-                                        std_area = 794.6253398125554
-                                        mean_filling_ratio = 0.13717846010306994
-                                        std_fillin_ratio = 0.07545651641355072
-                                        mean_saturation = 37.55115543136576
-                                        std_saturation = 28.178800884826995
+                                        sum_val = integral_image_val[y2 + 1, x2 + 1] + integral_image_val[y1, x1] - \
+                                                  integral_image_val[y2 + 1, x1] - integral_image_val[y1, x2 + 1]
+                                        mean_val = sum_val / area
 
-                                        ################### Score and distance ##############################
-
-                                        distance = abs(aspect_ratio-mean_aspect_ratio)/std_aspect_ratio + \
-                                            abs(length-mean_length)/std_length + \
-                                            abs(area-mean_area)/std_area + \
-                                            abs(filling_letters-mean_filling_ratio)/std_fillin_ratio + \
-                                            abs(mean_sat-mean_saturation)/std_saturation
-
-                                        x2 = min(x2, im.shape[1] - 2)
-                                        y2 = min(y2, im.shape[0] - 2)
-
-                                        count_gradient_htop = (integral_mix_sobely[y1 + 2, x2 + 1] + \
-                                                              integral_mix_sobely[y1-1, x1] - \
-                                                              integral_mix_sobely[y1-1 , x2+1] - \
-                                                              integral_mix_sobely[y1+2, x1]) / ((x2-x1)*3)
-
-                                        count_gradient_hbot = (integral_mix_sobely[y2 + 2, x2 + 1] + \
-                                                              integral_mix_sobely[y2 - 1, x1] - \
-                                                              integral_mix_sobely[y2 - 1, x2 + 1] - \
-                                                              integral_mix_sobely[y2 + 2, x1]) / ((x2-x1)*3)
-
-                                        count_gradient_vleft = (integral_mix_sobely[y2 + 1, x1 + 2] + \
-                                                              integral_mix_sobely[y1, x1-1] - \
-                                                              integral_mix_sobely[y1, x1 + 2] - \
-                                                              integral_mix_sobely[y2 + 1, x1-1]) / ((y2-y1)*3)
-
-                                        count_gradient_right = (integral_mix_sobely[y2 + 1, x2 + 2] + \
-                                                               integral_mix_sobely[y1, x2 - 1] - \
-                                                               integral_mix_sobely[y1, x2 + 2] - \
-                                                               integral_mix_sobely[y2 + 1, x2 - 1]) / ((y2-y1)*3)
-
-                                        gradient_score = count_gradient_htop + count_gradient_hbot + count_gradient_vleft + count_gradient_right
-
-                                        #print("-----------------------")
-                                        #print(distance)
-                                        #print(gradient_score)
-
-                                        window_candidates.append(((x1, y1, x2, y2), distance-3*gradient_score))
+                                        if (mean_val < 120):  # dark background -> white letters
+                                            target_integral_image = integral_threshwhite_big
+                                            is_dark_bg = True
+                                        else:
+                                            is_dark_bg = False
+                                        if (mean_val > 140):  # bright background -> dark letters
+                                            target_integral_image = integral_threshblack_big
+                                            is_bright_bg = True
+                                        else:
+                                            is_bright_bg = False
+                                        if (not (is_dark_bg or is_bright_bg)):
+                                            target_integral_image = integral_blackwhite_big
 
 
+                                        count_letters_big = target_integral_image[y2_big + 1, x2_big + 1] + \
+                                                            target_integral_image[y1_big, x1_big] - \
+                                                            target_integral_image[y2_big + 1, x1_big] - \
+                                                            target_integral_image[y1_big, x2_big + 1]
+                                        area_big = area / ratio / ratio
+                                        filling_letters = count_letters_big / area_big
+
+                                        if (filling_letters > 0.02 and filling_letters < 0.4):
 
 
+                                            count+=1
+                                            #cv2.rectangle(rgb_image, pt1=point1, pt2=point2, color=(0,0,255), thickness=1)
 
+                                            #################### SCORE WINDOWS AND RETRIEVE BEST ##########################
 
+                                            distance = abs(aspect_ratio-mean_aspect_ratio)/std_aspect_ratio + \
+                                                abs(length-mean_length)/std_length + \
+                                                abs(area-mean_area)/std_area + \
+                                                abs(filling_letters-mean_filling_ratio)/std_fillin_ratio + \
+                                                abs(mean_sat-mean_saturation)/std_saturation
+
+                                            x2 = min(x2, im.shape[1] - 2)
+                                            y2 = min(y2, im.shape[0] - 2)
+                                            x1 = max(1, x1)
+                                            y1 = max(1, y1)
+
+                                            count_gradient_htop = (integral_mix_sobely[y1 + 2, x2 + 1] + \
+                                                                  integral_mix_sobely[y1-1, x1] - \
+                                                                  integral_mix_sobely[y1-1 , x2+1] - \
+                                                                  integral_mix_sobely[y1+2, x1]) / ((x2-x1)*3)
+
+                                            count_gradient_hbot = (integral_mix_sobely[y2 + 2, x2 + 1] + \
+                                                                  integral_mix_sobely[y2 - 1, x1] - \
+                                                                  integral_mix_sobely[y2 - 1, x2 + 1] - \
+                                                                  integral_mix_sobely[y2 + 2, x1]) / ((x2-x1)*3)
+
+                                            count_gradient_vleft = (integral_mix_sobelx[y2 + 1, x1 + 2] + \
+                                                                  integral_mix_sobelx[y1, x1-1] - \
+                                                                  integral_mix_sobelx[y1, x1 + 2] - \
+                                                                  integral_mix_sobelx[y2 + 1, x1-1]) / ((y2-y1)*3)
+
+                                            count_gradient_right = (integral_mix_sobelx[y2 + 1, x2 + 2] + \
+                                                                   integral_mix_sobelx[y1, x2 - 1] - \
+                                                                   integral_mix_sobelx[y1, x2 + 2] - \
+                                                                   integral_mix_sobelx[y2 + 1, x2 - 1]) / ((y2-y1)*3)
+
+                                            gradient_score = count_gradient_htop + count_gradient_hbot + count_gradient_vleft + count_gradient_right
+
+                                            if(is_dark_bg):
+                                                bboxes = bboxes_white
+                                            elif(is_bright_bg):
+                                                bboxes = bboxes_black
+                                            else: bboxes = bboxes_white+bboxes_black
+
+                                            box_cuts = 0
+                                            intersections = 0
+                                            for bbox in bboxes:
+                                                intersect = intersection(bbox, (x1_big, y1_big, x2_big, y2_big))
+                                                area_bbox = (bbox[2] - bbox[0] + 1) * (bbox[3] - bbox[1] + 1)
+                                                cut = min(intersect, area_bbox-intersect)
+                                                box_cuts += cut
+                                                intersections += intersect
+
+                                            intersect_score = intersections / area_big
+                                            box_cuts = box_cuts / area_big
+
+                                            dict_score = {}
+                                            dict_score["gradient_score"] = gradient_score
+                                            dict_score["box_cuts"] = box_cuts
+                                            dict_score["dist_aspect_ratio"] = abs(aspect_ratio-mean_aspect_ratio)/std_aspect_ratio
+                                            dict_score["dist_length"] = abs(length-mean_length)/std_length/4
+                                            dict_score["area"] = abs(area-mean_area)/std_area/4
+                                            dict_score["filling_letters"] = abs(filling_letters-mean_filling_ratio)/std_fillin_ratio
+                                            dict_score["saturation"] = abs(mean_sat - mean_saturation) / std_saturation
+                                            dict_score["intersect score"] = intersect_score
+
+                                            score = distance/4 - gradient_score + 10*box_cuts - 5*intersect_score
+
+                                            window_candidates.append(((x1, y1, x2, y2), score, dict_score))
 
 
         #print("candidate windows")
@@ -360,11 +558,16 @@ def main():
             print("Empty windows candidates!!!: "+im_name)
             winning_window = (0,0,0,0)
         else:
-            winning_window = min(window_candidates, key=lambda x: x[1])[0]
+            winning_window, scoreBest, dict_scoreBest = min(window_candidates, key=lambda x: x[1])
         #print("WINNER")
         #print(winning_window)
 
-        gt_window = (x1gt, y1gt, x2gt, y2gt)
+        gt_window = gt[im_name]
+
+
+
+
+
 
         #print("winning window", winning_window)
         winning_window_big = ( int(winning_window[0]/ratio), int(winning_window[1]/ratio), int(winning_window[2]/ratio), int(winning_window[3]/ratio) )
@@ -377,8 +580,8 @@ def main():
         iou_list.append(iou)
 
 
-        point1 = (int(x1gt * ratio), int(y1gt * ratio))
-        point2 = (int(x2gt * ratio), int(y2gt * ratio))
+        point1 = (int(gt_window[0] * ratio), int(gt_window[1] * ratio))
+        point2 = (int(gt_window[2] * ratio), int(gt_window[3] * ratio))
 
         p1 = winning_window[:2]
         p2 = winning_window[2:]
@@ -386,7 +589,50 @@ def main():
         #print(p2)
         cv2.rectangle(rgb_image, pt1=p1, pt2=p2, color=(0, 0, 255), thickness=2)
         #print("-----------------------------")
+        if(gt_score < scoreBest):
+            print("GT WINS")
+        else:
+            print("GT Loses")
+            print("-----------------------------------------")
+            print("score winning window", scoreBest)
+            print("scores winning window", dict_scoreBest)
+            print("...................")
+            print("gt score", gt_score)
+            print("gt scores", gt_dict_score)
+        if(iou < 0.4):
+            plt.subplot(331)
+            plt.title("Image")
+            plt.imshow(rgb_image)
+            plt.subplot(332)
+            plt.title("Saturation")
+            plt.imshow(sat_im, cmap='gray')
+            plt.subplot(333)
+            plt.title("Value")
+            plt.imshow(val_im, cmap='gray')
 
+            plt.subplot(3, 3, 7)
+            plt.title("Threshold_Black")
+            plt.imshow(image_black, cmap='gray')
+
+            plt.subplot(3, 3, 8)
+            plt.title("Threshold_White")
+            plt.imshow(image_white, cmap='gray')
+
+            plt.subplot(3, 3, 5)
+            plt.title("Saturation Gradient")
+            plt.imshow(sat_sobel, cmap='gray')
+
+            plt.subplot(3, 3, 6)
+            plt.title("Value Gradient")
+            plt.imshow(val_sobel, cmap='gray')
+
+            plt.subplot(3, 3, 4)
+            plt.title("Mask")
+            plt.imshow(mask, cmap='gray')
+
+
+
+            plt.show()
         """"
 
         ############## Edges Canny ##############################
