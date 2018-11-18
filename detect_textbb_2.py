@@ -20,48 +20,70 @@ def rescale_bbox_sat_val(bbox, im, mean_saturation, mean_value):
     hsv_image = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
     hue_im, sat_im, val_im = hsv_image[:, :, 0], hsv_image[:, :, 1], hsv_image[:, :, 2]
 
-    threshold_distance = 5
-    starty = max(1, int(y1 - 0.8 * h))
+    kernel_size = 3
+
+    sat_im = cv2.GaussianBlur(sat_im, (kernel_size, kernel_size), 0)
+    val_im = cv2.GaussianBlur(val_im, (kernel_size, kernel_size), 0)
+
+    threshold_distance = 20
+    starty = max(1, int(y1 - h))
     max_j = 0
     found = False
-    while(not found):
-        for j in range(int(0.8 * h )):
-            dif = 0
-            count = 0
-            for i in range(w):
-                dif += abs(sat_im[starty + j, x1 + i] - mean_saturation) + abs(val_im[starty + j, x1 + i] - mean_value)
-                count+=1
-            if ((not found) and  (dif/count < threshold_distance)):
+    difs = []
+    for j in range(int(h )):
+        dif = 0
+        for i in range(w):
+            dif+=(abs(sat_im[starty + j, x1 + i] - mean_saturation) + abs(val_im[starty + j, x1 + i] - mean_value))
+        difs.append(dif/w)
+    print(difs)
+    for i in range(len(difs)-1):
+        difs[i] = difs[i] - difs[i+1]
+    difs[len(difs)-1] = 0
+    print(".....")
+    print(difs)
+    while (not found):
+        for j in range(int(h)-int(h*0.1), 0, -1):
+            if ((not found) and difs[j] > threshold_distance):
                 found = True
-                max_j = j
-        if (not found):
-            threshold_distance += 5
+                max_j = j-1
+            if (not found):
+                threshold_distance -= 1
     y1 = min(starty + max_j, y1)
 
-    threshold_distance = 5
+    threshold_distance = 20
     endy = min(im.shape[0] - 1, int(y2 + 0.8 * h))
     max_j = 0
     found = False
-    while(not found):
-        for j in range(int(0.8 * h )):
-            dif = 0
-            count = 0
-            for i in range(w):
-                dif += abs(sat_im[endy - j, x1 + i] - mean_saturation) + abs(val_im[endy - j, x1 + i] - mean_value)
-                count += 1
-            if ((not found) and  dif/count < threshold_distance):
+    difs = []
+    for j in range(int(h )):
+        dif = 0
+        count = 0
+        for i in range(w):
+            dif += abs(sat_im[endy - j, x1 + i] - mean_saturation) + abs(val_im[endy - j, x1 + i] - mean_value)
+            count += 1
+        difs.append(dif/count)
+    print("¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨ y2")
+    print(difs)
+    for i in range(len(difs)-1):
+        difs[i] = difs[i] - difs[i+1]
+    difs[len(difs) - 1] = 0
+    print(".....")
+    print(difs)
+    while (not found):
+        for j in range(int(h)-int(h*0.1), 0, -1):
+            if ((not found) and difs[j] > threshold_distance):
                 found = True
-                max_j = j
-        if (not found):
-            threshold_distance += 5
+                max_j = j-1
+            if (not found):
+                threshold_distance -=1
     y2 = max(endy - max_j, y2)
 
-    threshold_distance = 5
+    threshold_distance = 50
     startx = max(1, int(x1 - 0.1 * w))
     max_i = 0
     found = False
     while(not found):
-        for i in range(int(0.1 * w)):
+        for i in range(int(0.1 * w), 0, -1):
             dif = 0
             count = 0
             for j in range(y2 - y1):
@@ -74,12 +96,12 @@ def rescale_bbox_sat_val(bbox, im, mean_saturation, mean_value):
             threshold_distance += 5
     x1 = min(startx + max_i, x1)
 
-    threshold_distance = 5
+    threshold_distance = 20
     endx = min(im.shape[1] - 1, int(x2 + 0.1 * w))
     max_i = 0
     found = False
     while(not found):
-        for i in range(int(0.1 * w )):
+        for i in range(int(0.1 * w ), 0, -1):
             dif = 0
             count = 0
             for j in range(y2 - y1):
@@ -95,7 +117,41 @@ def rescale_bbox_sat_val(bbox, im, mean_saturation, mean_value):
     return (x1, y1, x2, y2)
 
 
-def rescale_bbox_gradient(bbox, im):
+def calculate_append_box(bbox, newbbox):
+    if(bbox[0] != newbbox[0]):
+        return (newbbox[0], bbox[1], bbox[0], bbox[3])
+    if (bbox[1] != newbbox[1]):
+        return (bbox[0], newbbox[1], bbox[0], bbox[1])
+    if (bbox[2] != newbbox[2]):
+        return (bbox[2], bbox[1], newbbox[0], bbox[3])
+    if (bbox[3] != newbbox[3]):
+        return (bbox[0], bbox[1], bbox[0], bbox[3])
+    return bbox
+
+
+
+def check_rescale(bbox, newbbox, sat_im, val_im, mean_saturation, mean_value):
+    appended_box = calculate_append_box(bbox, newbbox)
+    mean_sat = 0
+    mean_val = 0
+    count = 0
+    for i in range(appended_box[2]-appended_box[0]):
+        for j in range(appended_box[3] - appended_box[1]):
+            mean_sat += sat_im[j,i]
+            mean_val += val_im[j,i]
+            count +=1
+    mean_sat = mean_sat / count
+    mean_val = mean_val / count
+
+    distance = abs(mean_saturation - mean_sat) + abs(mean_value - mean_val)
+
+    return distance < 50
+
+
+
+
+
+def rescale_bbox_gradient(bbox, im, mean_saturation, mean_value):
     x, y1, w, h = bbox
     x1 = x
     x2 = x1+w
@@ -123,59 +179,52 @@ def rescale_bbox_gradient(bbox, im):
     mix_sobely = (sat_sobely + val_sobely)
 
     starty = max(1, int(y1-0.8*h))
-    max_g = 0
-    max_j = 0
+    gradients = []
     for j in range (int(0.8*h - h*0.1)):
         #calculate gradient
-        g = 0
+        g=0
         for i in range(w):
             g += mix_sobely[starty+j, x1+i]
-        if(g > max_g):
-            max_g = g
-            max_j = j
+        gradients.append(g)
+    max_j = np.argmax(gradients)
     y1 = min(starty+max_j, y1)
 
     endy = min(im.shape[0]-1, int(y2 + 0.8 * h))
-    max_g = 0
-    max_j = 0
+    gradients = []
     for j in range(int(0.8*h - h*0.1)):
         # calculate gradient
-        g = 0
+        g=0
         for i in range(w):
             g += mix_sobely[endy - j, x1 + i]
-        if (g > max_g):
-            max_g = g
-            max_j = j
+        gradients.append(g)
+    max_j = np.argmax(gradients)
     y2 = max(endy - max_j, y2)
 
     startx = max(1, int(x1 - 0.1 * w))
-    max_g = 0
-    max_i = 0
+    gradients = []
     for i in range(int(0.1 * w - w * 0.01)):
         # calculate gradient
-        g = 0
+        g=0
         for j in range(y2-y1):
             g += mix_sobelx[y1 + j, startx + i]
-        if (g > max_g):
-            max_g = g
-            max_i = i
+        gradients.append(g)
+    max_i = np.argmax(gradients)
     x1 = min(startx + max_i, x1)
 
     endx = min(im.shape[1] - 1, int(x2 + 0.1 * w))
-    max_g = 0
-    max_i = 0
+    gradients = []
     for i in range(int(0.1 * w - w * 0.01)):
         # calculate gradient
-        g = 0
+        g=0
         for j in range(y2-y1):
             g += mix_sobelx[y1+j, endx - i]
-        if (g > max_g):
-            max_g = g
-            max_i = i
+        gradients.append(g)
+    max_i = np.argmax(gradients)
     x2 = max(endx - max_i, x2)
 
 
 
+    print()
 
 
     """
@@ -206,7 +255,6 @@ def rescale_bbox_gradient(bbox, im):
 
 
     return (x1, y1, x2, y2)
-
 
 
 def check_bbox(bbox, is_from_black, im):
@@ -401,18 +449,69 @@ def detect_text(im_rgb, color_msk):
     return text_box, score
 
 
+def get_text_bbox(im):
+    big_image = im.copy()
+    h, w = im.shape[0:2]
+    ratio = 1000 / w
+    im = cv2.resize(im, (1000, int(ratio * h)))  # (ratio*w,ratio*h))
+    # cv2.rectangle(im,(x1gt,y1gt),(x2gt,y2gt),(0,255,0),2)
+    # line_detection(im)
+    w_msk = white_filter(im)
+    b_msk = black_filter(im)
+
+    detected_bbox = False
+
+    while (not detected_bbox):
+
+        w_box, w_score = detect_text(im, w_msk)
+        b_box, b_score = detect_text(im, b_msk)
+
+        if w_score > b_score:
+            text_box = w_box
+            is_from_black = False
+        else:
+            text_box = b_box
+            is_from_black = True
+
+        x, y, w, h = text_box
+
+        cv2.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 5)
+        detected_bbox, mean_saturation, mean_value = check_bbox(text_box, is_from_black, im)
+        if (not detected_bbox):
+            if (is_from_black):
+                cv2.rectangle(b_msk, (x, y), (x + w, y + h), (0), -1)
+            else:
+                cv2.rectangle(w_msk, (x, y), (x + w, y + h), (0), -1)
+                # plt.imshow(im)
+                # plt.show()
+
+    cv2.rectangle(im, (x, y), (x + w, y + h), (255, 0, 0), 2)
+    rescaled_text_box = [int(i / ratio) for i in text_box]
+    x, y, w, h = rescaled_text_box
+    # ---------------------------------
+    text_box = [x, y, w, h]
+
+    rescaled_text_box = rescale_bbox_gradient(text_box, big_image, mean_saturation, mean_value)
+    return rescaled_text_box
+
+
 def main():
     data = Data(database_dir='w5_BBDD_random', query_dir='w5_devel_random')
     gt = ground_truth_text.get_text_gt()
     iou_list = []
     # loop over database_imgs without overloading memory
 
+    bbox_list = []
+
+    print("------------------")
     for im, im_name in data.database_imgs:
+        rescaled_text_box = get_text_bbox(im)
         x1gt, y1gt, x2gt, y2gt = gt[im_name]
         big_image = im.copy()
         h, w = im.shape[0:2]
         ratio = 1000 / w
         im = cv2.resize(im, (1000, int(ratio * h)))  # (ratio*w,ratio*h))
+
         # cv2.rectangle(im,(x1gt,y1gt),(x2gt,y2gt),(0,255,0),2)
         #line_detection(im)
         w_msk = white_filter(im)
@@ -446,28 +545,20 @@ def main():
                 #plt.show()
 
         cv2.rectangle(im, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        rescaled_text_box = [int(i / ratio) for i in text_box]
+        #rescaled_text_box = [int(i / ratio) for i in text_box]
         x, y, w, h = rescaled_text_box
         # ---------------------------------
-
-        """y = int(y - 0.2 * h)
-        h = int(h + 0.6 * h)
-
-        # x = int(x - 0.2*h)
-        # w = int(w + 0.4*h)
-        x = int(x - 0.04 * w)
-        w = int(w + 0.08 * w)"""
         text_box = [x, y, w, h]
 
-        #rescaled_text_box = rescale_bbox_gradient(text_box, big_image)
-        rescaled_text_box = rescale_bbox_sat_val(text_box, big_image, mean_saturation, mean_value)
+        #rescaled_text_box = rescale_bbox_gradient(text_box, big_image, mean_saturation, mean_value)
+        #rescaled_text_box = rescale_bbox_sat_val(text_box, big_image, mean_saturation, mean_value)
 
         x1, y1, x2, y2 = rescaled_text_box
 
         cv2.rectangle(im, (int(x1*ratio), int(y1*ratio)), (int(x2*ratio), int(ratio*y2)), (0, 255, 0), 2)
         # ---------------------------------
 
-
+        bbox_list.append(bbox_list)
 
         #print(rescaled_text_box)
         #print(gt[im_name])
@@ -476,7 +567,7 @@ def main():
         print("iou: " + str(iou))
         iou_list.append(iou)
 
-        if(iou<0.9):
+        if(iou<0):
             print("---------------------------------")
             print(im_name)
             plt.imshow(im)
@@ -484,7 +575,11 @@ def main():
             print()
 
     print(iou_list)
-    print(np.mean(iou_list))
+    print("MEAN IoU", np.mean(iou_list))
+    plt.title("IoU List")
+    plt.hist(iou_list, bins = 20)
+    plt.show()
+
 
 
 if __name__ == "__main__":

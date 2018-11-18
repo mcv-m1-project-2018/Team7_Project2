@@ -16,6 +16,8 @@ class Img_iterator():
             if ext != '':
                 self.imgs_files.append(file)
 
+        self.imgs_files.sort()
+
     def __iter__(self):
         return self
 
