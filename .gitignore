@@ -8,6 +8,7 @@ features/
 query_test/
 w5_devel_random/
 w5_BBDD_random/
+w5_test_random/
 
 #Other stuff
 .idea/

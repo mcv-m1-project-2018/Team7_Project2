@@ -5,6 +5,7 @@ import matplotlib.patches as pat
 from skimage.filters import sobel
 import numpy as np
 import math
+import pickle
 
 """
 Example code for the segmentation of the paintings.
@@ -17,22 +18,21 @@ def rotateImage(image, angle, center):
     return result
 
 
-def get_painting_rotated(image, show=False, save_fig=False):
+def get_painting_rotated(image, show=False, save_fig=False, imname=None):
     # rescale the image, works better and uses less memory
     shape_max = max(image.shape)
     if shape_max > 750:
         ratio = 750 / shape_max
         image = cv2.resize(image, (0, 0), fx=ratio, fy=ratio)
 
-    # gray = cv2.cvtColor(q_im, cv2.COLOR_BGR2GRAY)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     gray = gray[:, :, 2]
 
     # edge detection, binarization, some morphology and contour extraction
     edge = sobel(gray)
-    edge = cv2.GaussianBlur(edge, (27, 27), 0)
+    edge = cv2.GaussianBlur(edge, (13, 13), 0)
     mean = edge.mean()
-    edge_binary = 1.0 * (edge > mean * 1.6)
+    edge_binary = 1.0 * (edge > mean * 1.4)
     kernel = np.ones((10, 10), np.uint8)
     edge_binary = cv2.morphologyEx(np.uint8(edge_binary), cv2.MORPH_CLOSE, kernel)
 
@@ -91,6 +91,7 @@ def get_painting_rotated(image, show=False, save_fig=False):
     cropped_image = rotated_image[upper_left_edge[1]:upper_left_edge[1] + h_rotated_bbox,
                                   upper_left_edge[0]:upper_left_edge[0] + w_rotated_bbox, :]
 
+    angle2 = -angle + 180  # angle as defined in the slides
     if show:
         fig = plt.figure()
 
@@ -116,6 +117,22 @@ def get_painting_rotated(image, show=False, save_fig=False):
                  [upper_left_edge[1], upper_left_edge[1]], color="magenta", linewidth=2)
         ax1.plot([upper_left_edge[0], upper_left_edge[0] + 90 * math.cos(math.radians(angle))],
                  [upper_left_edge[1], upper_left_edge[1] + 90 * math.sin(math.radians(angle))], color="magenta", linewidth=2)
+
+        cx = x + w/2
+        cy = y + h/2
+        ax1.plot([cx, cx + 200],
+                 [cy, cy], color="red", linewidth=2)
+        ax1.plot([cx, cx - 200],
+                 [cy, cy], color="red", linewidth=2)
+        ax1.plot([cx, cx + 200 * math.cos(math.radians(-angle2))],
+                 [cy, cy + 200 * math.sin(math.radians(-angle2))], color="green", linewidth=2)
+        ax1.plot([cx, cx + 200 * math.cos(math.radians(-angle2+180))],
+                 [cy, cy + 200 * math.sin(math.radians(-angle2+180))], color="green", linewidth=2)
+        ax1.text(0.04, 0.05, "angle2: " + "{0:.2f}".format(angle2), transform=ax1.transAxes, fontsize=13, color="red",
+                 bbox=dict(facecolor="gray", alpha=0.5, edgecolor='none'))
+        arc = pat.Arc((cx, cy), 200, 200, 0, theta1=-angle2, theta2=0, linewidth=2, color="red")
+        ax1.add_patch(arc)
+
         # these are the corners of the bbox returned by minAreaRect. Notice how the points of the image change based on
         # the tilting of the image. This is because opencv hates us and wants to make us scream in agony.
         ax1.annotate("0", (box[0][0] - 10, box[0][1] - 10), fontsize=13)
@@ -138,22 +155,40 @@ def get_painting_rotated(image, show=False, save_fig=False):
         ax1.imshow(cropped_image)
 
         if save_fig:
-            fig.savefig("./test/" + q_name + "composition.jpg")
+            fig.savefig("./test/" + imname + "composition.jpg")
+            plt.close(fig)
         else:
             plt.show()
 
-    return cropped_image, (upper_left_edge, h_rotated_bbox, w_rotated_bbox, angle)
+    return cropped_image, (upper_left_edge, h_rotated_bbox, w_rotated_bbox, angle,)
 
 
-# database_dir = 'w5_BBDD_random'
-# query_folder = "w5_devel_random"
-#
-# data = Data(database_dir=database_dir, query_dir=query_folder)
-#
-#
-# for q_im, q_name in data.query_imgs:
-#     get_painting_rotated(q_im, show=True)
-#
-#
-# exit(0)
+def main():
+    database_dir = 'w5_BBDD_random'
+    query_folder = "w5_test_random"
+
+    data = Data(database_dir=database_dir, query_dir=query_folder)
+
+    # frames = []
+
+    for q_im, q_name in data.query_imgs:
+        get_painting_rotated(q_im, show=True, imname=q_name, save_fig=False)
+        # bbox = []
+        # bbox.append(int(angle))
+        # temp = []
+        # for i in box:
+        #     temp.append(tuple(i.astype("int32")))
+        # bbox.append(temp)
+        # frames.append(bbox)
+        # print(bbox)
+
+    # with open("./frames.pkl", "wb") as f:
+    #     pickle.dump(frames, f)
+
+    exit(0)
+
+
+if __name__ == "__main__":
+    main()
+
 

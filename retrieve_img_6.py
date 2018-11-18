@@ -13,6 +13,7 @@ from descriptors.orb import Orb
 from descriptors.sift import Sift
 from descriptors.root_sift import RootSift
 from painting_detection import get_painting_rotated
+from detect_textbb_2 import get_text_bbox
 
 
 def reshape(image):
@@ -51,6 +52,8 @@ def get_features(method, data, query_folder, database_dir, method_name):
         print("computing " + database_dir + " features...")
         database_feats = {}
         for im, name in data.database_imgs:
+            x, y, w, h = get_text_bbox(im)
+            im[y:h, x:w, :] = 0
             im = reshape(im)
             if method_name == 'surf':
                 database_feats[name] = method.detectAndCompute(im, adapt_threshold=True, step=1000, max_features=2000)
@@ -136,7 +139,7 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest=False):
     elif method_name == 'surf':
         method = Surf()
         # min_features = 100
-        th = 0.18
+        th = 0.24
     elif method_name == 'sift':
         method = Sift()
         # min_features = 70
@@ -159,7 +162,9 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest=False):
 
     res = []
     for _, q_name in query_imgs:
+
         scores = method.retrieve_best_results(None, database_imgs, database_feats, query_feats[q_name])
+
         if method_name == 'sift' or method_name == 'root_sift':
             features_num = len(query_feats[q_name][0])
         else:
@@ -175,11 +180,21 @@ def main(database_dir, query_folder, ground_truth, method_name, forTest=False):
 
         print(scores[:3], "   ", ground_truth[q_name], "   ", scores[0][1] / features_num)
         print(eval)
+        #
+        # import matplotlib.pyplot as plt
+        # plt.subplot(1, 2, 1)
+        # plt.imshow(plt.imread(query_folder + "/" + q_name + ".jpg"))
+        # plt.subplot(1, 2, 2)
+        # if len(scores) > 3:
+        #     plt.imshow(plt.imread(database_dir + "/" + scores[0][0] + ".jpg"))
+        # else:
+        #     plt.imshow(np.ones((200, 200)).astype("uint8"))
+        # plt.show()
 
     global_eval = np.mean(eval_array)
     print("----------------\nEvaluation: " + str(global_eval))
-    q = [name for _, name in data.query_imgs]
 
+    q = [name for _, name in data.query_imgs]
     with open("result.pkl", "wb") as f:
         pickle.dump(res, f)
     with open("query.pkl", "wb") as f:
@@ -204,8 +219,8 @@ if __name__ == "__main__":
 
     # here we select the folder with the right database and queries according to the options
     if args.test:
-        query_folder = "query_test_random"
-        ground_truth = ground_truth_test
+        query_folder = "w5_test_random"
+        ground_truth = ground_truth_W5
     else:
         query_folder = "w5_devel_random"
         ground_truth = ground_truth_W5

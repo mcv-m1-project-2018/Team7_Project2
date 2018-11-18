@@ -13,6 +13,7 @@ from descriptors.root_sift import RootSift
 from descriptors.sift import Sift
 from evaluation import evaluation
 from painting_detection import get_painting_rotated
+from detect_textbb_2 import get_text_bbox
 
 
 def reshape(image):
@@ -49,6 +50,8 @@ def main(args):
     database_hist = []
     print("computing dataset features...")
     for im, name in data.database_imgs:
+        x, y, w, h = get_text_bbox(im)
+        im[y:h, x:w, :] = 0
         im = reshape(im)
         database_imgs.append([None, name])
         database_hist.append(get_hsv_hist(im))

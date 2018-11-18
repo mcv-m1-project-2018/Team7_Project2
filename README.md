@@ -9,7 +9,9 @@ In order to run our code, you need to place the following folders in the root fo
 
 Week 3: ```museum_set_random```, ```query_devel_random```, ````query_test_random````
 
-Week 4: ````BBDD_W4````, ````query_devel_W4````, ````query_test````  
+Week 4: ````BBDD_W4````, ````query_devel_W4````, ````query_test````
+
+Week 5:   ````w5_BBDD_random````, ````w5_devel````, ````w5_test_random````
 
 ## Running the code - WEEK 3
 We have implemented two main methods, one using histogram based matching and one using Discrete Wavelet Transformation based hashing. We have also combined both in order to increase the scores. 
@@ -58,6 +60,31 @@ the ````-test```` flag. For example, run ````-python retrieve_img_4.py -test -us
  To run the code with week's 3 development query set use the flag ````-week3````. Finally, to 
 run the test set from the third week use the ````-test```` flag jointly with the ````-week3```` flag.
 
+## Running the code - WEEK 5
+
+We have implemented two main methods, one using histograms + hashing methods and another one using feature-based methods. We
+also have a couple of demos for the painting detection and text detection that will show some of the results obtained.
+
+### Histogram + Hashing
+
+To use this method run ````python retrieve_img_5.py```` and use the flag ````-test```` to run it with the test set. 
+
+### SURF, SIFT, RootSIFT and ORB
+
+Surf, Sift, RootSift and Orb are run from the ````retrieve_img_6.py```` file. To specify the feature matching method use 
+````-use_surf```` to use Surf, ````-use_sift```` for Sift, ````-use_root_sift```` for Root Sift and ````-use_orb```` for Orb. 
+For example, to evaluate the development query set with Orb run ````python retrieve_img_6.py -use_orb````. To evaluate on the 
+test set use the ````-test```` flag.
+
+### Painting detection
+
+To see a demo of the detection and rotation of the paintings run ````python painting_detection.py````.
+
+### Text detection
+
+Running ````python detect_textbb_2.py```` will detect the text in the data set images and calculate the intersect over union
+score.
+
 ## Results
 
 ### Week 3
@@ -82,6 +109,11 @@ Score Week 3 | 0.81 | 0.98 | 0.93 |
 Score Week 3 Test | 0.77 | 0.86 | ? |
 Time per query(in seconds) | 0.42 | 0.65 | 5 |
 
+### Week 5
 
-
+Method | Hist+Hash | Surf| Orb | Sift | RootSift
+---  | --- | --- | ---  | ---  | ---  | 
+Score with text |0.81 |1.0 |0.95 |0.92 |0.96 
+Score without text |0.7 |1.0 |0.93 |0.94 |0.97 
+Time per query(s) |0.5 |1 |2 |5 |5 
 
