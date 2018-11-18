@@ -111,9 +111,20 @@ Time per query(in seconds) | 0.42 | 0.65 | 5 |
 
 ### Week 5
 
+Results for the painting retrieval problem:
+
 Method | Hist+Hash | Surf| Orb | Sift | RootSift
 ---  | --- | --- | ---  | ---  | ---  | 
 Score with text |0.81 |1.0 |0.95 |0.92 |0.96 
 Score without text |0.7 |1.0 |0.93 |0.94 |0.97 
 Time per query(s) |0.5 |1 |2 |5 |5 
+
+Results for the text detection problem
+
+  
+Method | Mean Intersection over Union | Time 
+ ---| ---| ---|
+Contour based method | 0.6351 | 3 seconds per frame 
+Letter based method | 0.9197 | 0.3 seconds per frame
+
 
